@@ -102,3 +102,21 @@ export const periodeFr = (debut: string, fin: string | null) => {
 
 /** Téléphone français à 10 chiffres → « 06 12 34 56 78 » ; les autres restent tels quels. */
 export const telephoneFr = (t: string) => (/^0\d{9}$/.test(t) ? t.replace(/(\d{2})(?=\d)/g, '$1 ') : t)
+
+export type StatutMois = 'aucune_adhesion' | 'a_payer' | 'partiel' | 'paye' | 'gratuit' | 'sans_tarif'
+
+/** Ligne de la liste (GET /api/liste) : une personne et l'état de sa cotisation du mois. */
+export interface LigneListe {
+  id: string
+  nom: string
+  prenom: string | null
+  surnom: string | null
+  adhesion: string | null
+  association: string | null
+  categorie: string | null
+  mois: { statut: StatutMois, du: string | null, regle: string | null, reste: string | null }
+  derniere_cotisation: string | null
+}
+
+/** « 60.00 » → « 60 € », « 7.50 » → « 7,50 € » */
+export const euros = (m: string | null) => (m === null ? '' : `${Number(m).toLocaleString('fr-FR', { minimumFractionDigits: Number(m) % 1 ? 2 : 0 })} €`)

@@ -96,10 +96,27 @@ legend { font-weight: 600; font-size: .9rem; padding: 0 .3rem; }
 .recherche-champ { font-size: 1.15rem; min-height: 54px; border: 2px solid var(--blanc); }
 .liste { list-style: none; margin: 0; padding: 0; background: var(--carte); border-radius: var(--rayon); overflow: hidden; }
 .liste li + li { border-top: 1px solid var(--bord); }
-.liste-ligne { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: .6rem 1rem; color: var(--texte); text-decoration: none; }
-.liste-ligne:hover, .liste-ligne:focus-visible { background: #f4f4f4; }
+.liste-entree { display: flex; align-items: center; gap: .6rem; padding-right: .8rem; content-visibility: auto; contain-intrinsic-size: auto 60px; }
+.liste-personne { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .15rem; padding: .6rem 0 .6rem 1rem; color: var(--texte); text-decoration: none; }
+.liste-personne:hover .liste-nom, .liste-personne:focus-visible .liste-nom { text-decoration: underline; }
 .liste-nom { font-weight: 600; }
-.chevron { font-size: 1.4rem; color: var(--doux); }
+.surnom { font-weight: 400; color: var(--doux); }
+.liste-infos { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; color: var(--doux); }
+.liste-action { flex-shrink: 0; display: flex; justify-content: flex-end; }
+mark { background: var(--bearn-jaune); color: inherit; border-radius: 2px; padding: 0 1px; }
+.bouton-petit { min-height: 36px; padding: .3rem .7rem; font-size: .85rem; }
+.moyens { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; max-width: 380px; }
+.bouton-fermer { border-color: var(--bord); color: var(--doux); }
+.statut { font-size: .82rem; font-weight: 700; color: var(--doux); white-space: nowrap; }
+.statut-paye { color: var(--joker-vert); }
+.filtres { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+.filtre { font: inherit; font-size: .85rem; padding: .35rem .75rem; border-radius: 999px; border: 1.5px solid #555; background: transparent; color: #ddd; cursor: pointer; min-height: 36px; }
+.filtre.actif { background: var(--blanc); color: var(--noir); border-color: var(--blanc); font-weight: 700; }
+.compte { opacity: .7; margin-left: .2rem; font-variant-numeric: tabular-nums; }
+.resultat { margin: 0 0 .5rem; }
+.bandeau { padding: .6rem .9rem; border-radius: 8px; font-weight: 600; margin: 0 0 .75rem; }
+.bandeau-ok { background: var(--joker-vert); color: var(--blanc); }
+.bandeau-erreur { background: var(--erreur); color: var(--blanc); }
 .vide { text-align: center; }
 
 /* ---- fiche */
@@ -146,6 +163,10 @@ legend { font-weight: 600; font-size: .9rem; padding: 0 .3rem; }
   .entete-email { display: none; }
   .entete nav { order: 3; flex-basis: 100%; }
   .recherche { top: 96px; }
+  .liste-entree { flex-wrap: wrap; padding-right: 0; }
+  .liste-action { width: 100%; padding: 0 1rem .6rem; justify-content: flex-start; }
+  .liste-action:empty { display: none; }
+  .moyens { max-width: none; justify-content: flex-start; }
   .definitions { grid-template-columns: 1fr; gap: 0; }
   .definitions dd { margin-bottom: .5rem; }
   /* cotisations : période et montant sur une ligne, l'association en dessous */

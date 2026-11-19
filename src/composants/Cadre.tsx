@@ -11,7 +11,7 @@ export function Cadre() {
       <header className="entete">
         <Link to="/" className="entete-logo"><Logo /></Link>
         <nav>
-          <NavLink to="/" end>Recherche</NavLink>
+          <NavLink to="/" end>Liste</NavLink>
           <NavLink to="/personnes/nouvelle">Nouvelle fiche</NavLink>
         </nav>
         <div className="entete-compte">

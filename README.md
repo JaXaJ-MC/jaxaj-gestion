@@ -3,7 +3,8 @@
 Interface web de l'outil de gestion du club, pensée d'abord pour le smartphone (accueil des événements) et utilisable sur ordinateur. Elle rassemblera peu à peu les écrans de toutes les applications du club ; pour l'instant, les membres :
 
 - connexion avec un compte de l'appli comptes (`jaxaj-comptes`) ;
-- recherche d'une personne (nom, prénom, surnom, sans accents ni majuscules) ;
+- liste complète des personnes avec l'état de la cotisation du mois ; la saisie filtre la liste sur place et surligne ce qu'elle trouve (sans accents ni majuscules) ; raccourcis « adhésion en cours » et « à payer » ;
+- bouton « Payé ce mois-ci » : choix du moyen de paiement, cotisation du mois créée au tarif et paiement enregistré ;
 - fiche : coordonnées (selon les droits), adhésions, cotisations, accès du jour ;
 - création et modification d'une fiche, nouvelle adhésion ;
 - « Transformer en compte » : crée le compte de la personne, avec ses droits et l'adresse d'envoi de l'invitation.
