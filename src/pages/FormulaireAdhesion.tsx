@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { useReference } from '../api/reference'
 import { nomComplet, type Personne } from '../api/types'
+import { ChampDate } from '../composants/ChampDate'
 
 /** Nouvelle adhésion pour une personne. L'accueil ne propose que « adhérent événement ». */
 export function FormulaireAdhesion() {
@@ -62,8 +63,8 @@ export function FormulaireAdhesion() {
           </select>
         </label>
         <div className="grille">
-          <label>Début *<input type="date" value={debut} onChange={(e) => setDebut(e.target.value)} required /></label>
-          <label>Fin (incluse, vide = en cours)<input type="date" value={fin} onChange={(e) => setFin(e.target.value)} /></label>
+          <ChampDate libelle="Début *" valeur={debut} changer={setDebut} requis />
+          <ChampDate libelle="Fin (incluse, vide = en cours)" valeur={fin} changer={setFin} />
         </div>
         {autres.length > 0 && (
           <label>Au titre de (club ou association représenté)

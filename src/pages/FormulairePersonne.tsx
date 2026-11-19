@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import type { Personne } from '../api/types'
+import { ChampDate } from '../composants/ChampDate'
 
 interface Champs {
   nom: string, prenom: string, surnom: string, dateNaissance: string, telephone: string, email: string,
@@ -76,7 +77,7 @@ export function FormulairePersonne() {
         {detail && (
           <>
             <div className="grille">
-              <label>Date de naissance<input type="date" {...champ('dateNaissance')} />{aide('dateNaissance')}</label>
+              <ChampDate libelle="Date de naissance" valeur={champs.dateNaissance} changer={(v) => setChamps((c) => ({ ...c, dateNaissance: v }))} aide={aide('dateNaissance')} />
               <label>Téléphone<input type="tel" {...champ('telephone')} />{aide('telephone')}</label>
               <label>E-mail<input type="email" {...champ('email')} />{aide('email')}</label>
             </div>

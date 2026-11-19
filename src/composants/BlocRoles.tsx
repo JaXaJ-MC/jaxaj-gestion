@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { aujourdhuiIso, dateFr, enCoursLe, idDe, ROLES, type Organisation, type Role } from '../api/types'
 import { EtiquetteAssociation } from './Etiquette'
+import { ChampDate } from './ChampDate'
 
 /** Rôles d'une personne (président, trésorier… d'une association) : en cours et passés. */
 export function BlocRoles({ personne, organisations }: { personne: string, organisations: Organisation[] }) {
@@ -57,7 +58,7 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
               )}
               {finPour === r.id && (
                 <form className="formulaire-ligne" onSubmit={(e) => envoyer(e, () => api('membres', `/api/roles/${r.id}`, { methode: 'PATCH', corps: { fin } }))}>
-                  <label>Dernier jour<input type="date" value={fin} onChange={(e) => setFin(e.target.value)} required /></label>
+                  <ChampDate libelle="Dernier jour" valeur={fin} changer={setFin} requis />
                   <button className="bouton bouton-principal bouton-petit">Valider</button>
                   <button type="button" className="bouton bouton-petit" onClick={() => setFinPour(null)}>Annuler</button>
                 </form>
@@ -86,7 +87,7 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
                 {triees.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
               </select>
             </label>
-            <label>Depuis le<input type="date" value={debut} onChange={(e) => setDebut(e.target.value)} required /></label>
+            <ChampDate libelle="Depuis le" valeur={debut} changer={setDebut} requis />
           </div>
           <p className="aide">Une seule personne à la fois par rôle et par association (sauf « représentant ») : terminez d'abord le mandat en cours.</p>
           <div className="actions">

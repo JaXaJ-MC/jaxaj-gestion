@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, ErreurApi } from '../api/client'
 import { aujourdhuiIso, idDe, type Adhesion, type Categorie } from '../api/types'
+import { ChampDate } from './ChampDate'
 
 /** Sur une adhésion en cours : changer de niveau (suiveur → full patch…) ou la clore. */
 export function ActionsAdhesion({ adhesion, categories, apres }: { adhesion: Adhesion, categories: Categorie[], apres: () => void }) {
@@ -47,9 +48,7 @@ export function ActionsAdhesion({ adhesion, categories, apres }: { adhesion: Adh
           </select>
         </label>
       )}
-      <label>{mode === 'changer' ? 'À partir du' : 'Dernier jour'}
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-      </label>
+      <ChampDate libelle={mode === 'changer' ? 'À partir du' : 'Dernier jour'} valeur={date} changer={setDate} requis />
       <button className="bouton bouton-principal bouton-petit" disabled={envoi}>{mode === 'changer' ? 'Changer' : 'Clore'}</button>
       <button type="button" className="bouton bouton-petit" onClick={() => setMode(null)}>Annuler</button>
       {erreur && <p className="erreur">{erreur}</p>}
