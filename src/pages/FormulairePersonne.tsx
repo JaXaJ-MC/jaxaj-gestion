@@ -90,7 +90,7 @@ export function FormulairePersonne() {
               <>
                 <Box sx={grille}>
                   <ChampDate libelle="Date de naissance" valeur={champs.dateNaissance} max={aujourdhuiIso()}
-                    changer={(v) => setChamps((c) => ({ ...c, dateNaissance: v }))} aide={erreur?.details.dateNaissance} />
+                    changer={(v) => setChamps((c) => ({ ...c, dateNaissance: v }))} erreur={erreur?.details.dateNaissance} />
                   <TextField label="Téléphone" type="tel" {...champ('telephone')} />
                   <TextField label="E-mail" type="email" {...champ('email')} />
                 </Box>

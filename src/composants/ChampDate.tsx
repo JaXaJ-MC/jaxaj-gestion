@@ -10,8 +10,11 @@ import dayjs from 'dayjs'
 const textes = frFR.components.MuiLocalizationProvider.defaultProps.localeText
 
 /** Sélecteur de date de l'appli (identique sur tous les navigateurs). Valeur : « AAAA-MM-JJ » ou « ». */
-export function ChampDate({ libelle, valeur, changer, requis = false, aide, max }: {
-  libelle: string, valeur: string, changer: (v: string) => void, requis?: boolean, aide?: string, max?: string
+export function ChampDate({ libelle, valeur, changer, requis = false, aide, erreur, max }: {
+  libelle: string, valeur: string, changer: (v: string) => void, requis?: boolean
+  aide?: string    // texte d'aide sous le champ
+  erreur?: string  // message d'erreur : le champ passe en rouge
+  max?: string
 }) {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr" localeText={textes}>
@@ -20,7 +23,7 @@ export function ChampDate({ libelle, valeur, changer, requis = false, aide, max 
       value={valeur ? dayjs(valeur) : null}
       onChange={(v) => changer(v && v.isValid() ? v.format('YYYY-MM-DD') : '')}
       maxDate={max ? dayjs(max) : undefined}
-      slotProps={{ textField: { required: requis, fullWidth: true, helperText: aide, error: !!aide } }}
+      slotProps={{ textField: { required: requis, fullWidth: true, helperText: erreur ?? aide, error: !!erreur } }}
     />
     </LocalizationProvider>
   )

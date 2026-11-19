@@ -7,13 +7,20 @@ import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
+import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 import { useRef, useState } from 'react'
+import { Link as LienRouteur } from 'react-router'
 import { api, ErreurApi } from '../api/client'
+import { useReference } from '../api/reference'
 import { euros } from '../api/types'
 import { ChampDate } from './ChampDate'
 
-interface Resultat { creees: number, total: string, reglees: number, conservees: number, sans_tarif: string[] }
+interface SansTarif { association: string, categorie: string, debut: string, fin: string }  // mois AAAA-MM
+interface Resultat { creees: number, total: string, reglees: number, conservees: number, sans_tarif: SansTarif[] }
+
+/** « 2022-04 » → « avril 2022 » */
+const moisFr = (m: string) => new Date(`${m}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
 
 /** Dernier jour du mois précédent : par défaut, tout ce qui précède le mois en cours est réglé. */
 const finDuMoisDernier = () => {
@@ -33,6 +40,9 @@ export function CalculCotisations({ personne, apres }: { personne: string, apres
   const [apercu, setApercu] = useState<Resultat | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
+  const ref = useReference()
+  const association = (id: string) => ref?.organisations.find((o) => o.id === id)?.nom ?? 'association inconnue'
+  const categorie = (code: string) => ref?.categories.find((c) => c.code === code)?.libelle ?? code
 
   const appeler = (date: string, simuler: boolean) => api<Resultat>('membres', `/api/personnes/${personne}/cotisations/calcul`, {
     methode: 'POST', corps: { regleesJusquau: date || null, simuler },
@@ -88,7 +98,15 @@ export function CalculCotisations({ personne, apres }: { personne: string, apres
             )}
             {apercu && apercu.sans_tarif.length > 0 && (
               <Alert severity="warning">
-                Sans tarif, rien de calculé : {apercu.sans_tarif.join(' ; ')}. Ajoutez le tarif dans « Tarifs ».
+                <Typography variant="body2" sx={{ mb: 0.5 }}>Aucun tarif en vigueur, rien n'est calculé pour :</Typography>
+                {apercu.sans_tarif.map((t) => (
+                  <Typography key={`${t.association}${t.categorie}${t.debut}`} variant="body2" sx={{ fontWeight: 600 }}>
+                    {categorie(t.categorie)} · {association(t.association)}, {t.debut === t.fin ? moisFr(t.debut) : `d'${moisFr(t.debut)} à ${moisFr(t.fin)}`.replace(/^d'([^aeiouyé])/i, 'de $1')}
+                  </Typography>
+                ))}
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  Ajoutez le tarif dans <Link component={LienRouteur} to="/tarifs" color="inherit">Tarifs</Link> (pour cette association ou pour toutes), puis relancez le calcul.
+                </Typography>
               </Alert>
             )}
             {erreur && <Alert severity="error">{erreur}</Alert>}
