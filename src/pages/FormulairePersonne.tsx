@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { api, ErreurApi } from '../api/client'
+import { aLeDroit, api, ErreurApi } from '../api/client'
 import type { Personne } from '../api/types'
 
 interface Champs {
@@ -17,14 +17,14 @@ export function FormulairePersonne() {
   const [params] = useSearchParams()
   const naviguer = useNavigate()
   const [champs, setChamps] = useState<Champs>({ ...vide, nom: params.get('nom') ?? '' })
-  const [detail, setDetail] = useState(true)  // l'accueil ne voit ni ne modifie les coordonnées existantes
+  // L'accueil ne voit ni ne modifie les coordonnées existantes ; à la création, il peut les saisir.
+  const detail = !id || aLeDroit('membres', 'admin', 'gestion')
   const [erreur, setErreur] = useState<ErreurApi | null>(null)
   const [envoi, setEnvoi] = useState(false)
 
   useEffect(() => {
     if (!id) return
     api<Personne>('membres', `/api/personnes/${id}`).then((p) => {
-      setDetail(p.telephone !== undefined)
       setChamps({
         nom: p.nom, prenom: p.prenom ?? '', surnom: p.surnom ?? '', dateNaissance: p.dateNaissance?.slice(0, 10) ?? '',
         telephone: p.telephone ?? '', email: p.email ?? '', commentaire: p.commentaire ?? '',

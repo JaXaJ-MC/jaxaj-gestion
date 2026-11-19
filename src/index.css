@@ -141,6 +141,16 @@ mark { background: var(--bearn-jaune); color: inherit; border-radius: 2px; paddi
 .nombre { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .droit { display: inline-block; font-size: .8rem; background: #f1f3f4; border-radius: 4px; padding: .1rem .35rem; margin: 0 .3rem .3rem 0; }
 
+/* ---- actions sur une ligne (adhésion, rôle) */
+.lien-bouton { background: none; border: 0; padding: .2rem 0; font: inherit; font-size: .85rem; color: var(--joker-violet); text-decoration: underline; cursor: pointer; }
+.actions-ligne { display: inline-flex; gap: .9rem; margin-left: auto; }
+.formulaire-ligne { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; margin-top: .4rem; padding: .6rem; background: #f6f7f8; border-radius: 8px; }
+.formulaire-ligne label { display: flex; flex-direction: column; gap: .2rem; font-size: .82rem; font-weight: 600; }
+.formulaire-ligne input, .formulaire-ligne select { min-height: 36px; padding: .3rem .5rem; width: auto; }
+.formulaire-ligne .erreur { flex-basis: 100%; margin: 0; }
+.liste-roles { display: flex; flex-wrap: wrap; gap: .3rem; }
+.role { font-size: .75rem; font-weight: 700; color: var(--joker-violet); border: 1.5px solid var(--joker-violet); border-radius: 999px; padding: .05rem .5rem; }
+
 /* ---- étiquettes d'association */
 .etiquette { display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; font-weight: 700; padding: .15rem .55rem; border-radius: 4px; white-space: nowrap; }
 .asso-club { background: var(--noir); color: var(--blanc); }

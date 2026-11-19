@@ -116,7 +116,35 @@ export interface LigneListe {
   categorie: string | null
   mois: { statut: StatutMois, du: string | null, regle: string | null, reste: string | null }
   derniere_cotisation: string | null
+  roles: { role: string, organisation: string }[]
 }
 
 /** « 60.00 » → « 60 € », « 7.50 » → « 7,50 € » */
 export const euros = (m: string | null) => (m === null ? '' : `${Number(m).toLocaleString('fr-FR', { minimumFractionDigits: Number(m) % 1 ? 2 : 0 })} €`)
+
+export interface Role {
+  id: string
+  personne: string
+  organisation: string
+  role: string
+  debut: string
+  fin: string | null
+}
+
+export const ROLES: Record<string, string> = {
+  president: 'Président(e)',
+  vice_president: 'Vice-président(e)',
+  tresorier: 'Trésorier(ère)',
+  secretaire: 'Secrétaire',
+  representant: 'Représentant(e)',
+}
+
+/** Aujourd'hui, au format AAAA-MM-JJ (heure locale). */
+export const aujourdhuiIso = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Une période (début, fin inclus, fin vide = en cours) couvre-t-elle cette date ? */
+export const enCoursLe = (debut: string, fin: string | null, jour: string) =>
+  debut.slice(0, 10) <= jour && (!fin || fin.slice(0, 10) >= jour)

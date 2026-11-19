@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { useReference } from '../api/reference'
-import { dateFr, euros, type LigneListe } from '../api/types'
+import { dateFr, euros, ROLES, type LigneListe } from '../api/types'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 import { Surligne } from '../composants/Surligne'
 import { correspond, termes } from '../texte'
@@ -118,6 +118,13 @@ export function Recherche() {
                     <Surligne texte={[l.prenom, l.nom].filter(Boolean).join(' ')} mots={mots} />
                     {l.surnom && <span className="surnom"> « <Surligne texte={l.surnom} mots={mots} /> »</span>}
                   </span>
+                  {l.roles.length > 0 && (
+                    <span className="liste-roles">
+                      {l.roles.map((r) => (
+                        <span key={r.role + r.organisation} className="role">{ROLES[r.role] ?? r.role} · {organisation(r.organisation)?.nom}</span>
+                      ))}
+                    </span>
+                  )}
                   <span className="liste-infos">
                     {l.adhesion
                       ? <><EtiquetteAssociation organisation={organisation(l.association)} /> {libelleCategorie(l.categorie)}</>

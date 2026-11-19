@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router'
 import { aLeDroit, api } from '../api/client'
 import { useReference } from '../api/reference'
 import { dateFr, idDe, nomComplet, periodeFr, telephoneFr, type Acces, type Adhesion, type Cotisation, type Personne } from '../api/types'
+import { ActionsAdhesion } from '../composants/ActionsAdhesion'
 import { BlocCompte } from '../composants/BlocCompte'
+import { BlocRoles } from '../composants/BlocRoles'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 
 export function Fiche() {
@@ -38,7 +40,8 @@ export function Fiche() {
   const categorie = (iri: string) => ref?.categories.find((c) => c.code === idDe(iri))
   const adhesionDe = (iri: string) => adhesions.find((a) => a.id === idDe(iri))
   const enCours = (a: Adhesion) => a.debut.slice(0, 10) <= aujourdhui && (!a.fin || a.fin.slice(0, 10) >= aujourdhui)
-  const detail = personne.adresse !== undefined || personne.telephone !== undefined
+  // Coordonnées : selon les droits (l'API omet les champs vides, leur absence ne dit rien).
+  const detail = aLeDroit('membres', 'admin', 'gestion')
 
   return (
     <section className="fiche">
@@ -81,10 +84,15 @@ export function Fiche() {
               <strong>{categorie(a.categorie)?.libelle ?? idDe(a.categorie)}</strong>
               <span className="periode">{a.fin ? `du ${dateFr(a.debut)} au ${dateFr(a.fin)}` : `depuis le ${dateFr(a.debut)}`}</span>
               {a.auTitreDe && <span className="aide">au titre de {organisation(a.auTitreDe)?.nom}</span>}
+              {enCours(a) && aLeDroit('membres', 'admin', 'gestion') && (
+                <ActionsAdhesion adhesion={a} categories={ref?.categories ?? []} apres={charger} />
+              )}
             </li>
           ))}
         </ul>
       </div>
+
+      <BlocRoles personne={personne.id} organisations={ref?.organisations ?? []} />
 
       <div className="carte">
         <h2>Cotisations</h2>
