@@ -1,8 +1,21 @@
+import Add from '@mui/icons-material/Add'
+import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import ListSubheader from '@mui/material/ListSubheader'
+import MenuItem from '@mui/material/MenuItem'
+import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { aujourdhuiIso, dateFr, enCoursLe, idDe, ROLES, type Organisation, type Role } from '../api/types'
-import { EtiquetteAssociation } from './Etiquette'
 import { ChampDate } from './ChampDate'
+import { EtiquetteAssociation } from './Etiquette'
+import { LigneHistorique, Section } from './Section'
 
 /** Rôles d'une personne (président, trésorier… d'une association) : en cours et passés. */
 export function BlocRoles({ personne, organisations }: { personne: string, organisations: Organisation[] }) {
@@ -11,7 +24,7 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
   const [organisation, setOrganisation] = useState('')
   const [role, setRole] = useState('')
   const [debut, setDebut] = useState(aujourdhuiIso)
-  const [finPour, setFinPour] = useState<string | null>(null)
+  const [finPour, setFinPour] = useState<Role | null>(null)
   const [fin, setFin] = useState(aujourdhuiIso)
   const [erreur, setErreur] = useState<string | null>(null)
   const peutModifier = aLeDroit('membres', 'admin', 'gestion')
@@ -24,9 +37,8 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
   }, [personne])
   useEffect(charger, [charger])
 
-  // Associations JaXaJ d'abord, puis les autres organisations.
-  const triees = [...organisations].sort((a, b) =>
-    Number(b.genre === 'association_jaxaj') - Number(a.genre === 'association_jaxaj') || a.nom.localeCompare(b.nom))
+  const jaxaj = organisations.filter((o) => o.genre === 'association_jaxaj')
+  const autres = organisations.filter((o) => o.genre !== 'association_jaxaj')
 
   async function envoyer(e: FormEvent, action: () => Promise<unknown>) {
     e.preventDefault()
@@ -42,60 +54,75 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
   }
 
   return (
-    <div className="carte">
-      <h2>Rôles</h2>
-      {roles.length === 0 && <p className="aide">Aucun rôle.</p>}
-      <ul className="historique">
-        {roles.map((r) => {
-          const enCours = enCoursLe(r.debut, r.fin, aujourdhui)
-          return (
-            <li key={r.id} className={enCours ? 'en-cours' : ''}>
-              <EtiquetteAssociation organisation={organisations.find((o) => o.id === idDe(r.organisation))} />
-              <strong>{ROLES[r.role] ?? r.role}</strong>
-              <span className="periode">{r.fin ? `du ${dateFr(r.debut)} au ${dateFr(r.fin)}` : `depuis le ${dateFr(r.debut)}`}</span>
-              {enCours && peutModifier && finPour !== r.id && (
-                <button className="lien-bouton" onClick={() => { setFinPour(r.id); setFin(aujourdhui) }}>Fin de mandat</button>
-              )}
-              {finPour === r.id && (
-                <form className="formulaire-ligne" onSubmit={(e) => envoyer(e, () => api('membres', `/api/roles/${r.id}`, { methode: 'PATCH', corps: { fin } }))}>
-                  <ChampDate libelle="Dernier jour" valeur={fin} changer={setFin} requis />
-                  <button className="bouton bouton-principal bouton-petit">Valider</button>
-                  <button type="button" className="bouton bouton-petit" onClick={() => setFinPour(null)}>Annuler</button>
-                </form>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-      {erreur && <p className="erreur" role="alert">{erreur}</p>}
-      {peutModifier && !ajout && <button className="bouton" onClick={() => setAjout(true)}>Attribuer un rôle</button>}
-      {ajout && (
-        <form className="formulaire" onSubmit={(e) => envoyer(e, () => api('membres', '/api/roles', {
+    <Section titre="Rôles" action={peutModifier && (
+      <Button size="small" startIcon={<Add />} onClick={() => { setAjout(true); setErreur(null); setRole(''); setOrganisation(''); setDebut(aujourdhui) }}>
+        Attribuer un rôle
+      </Button>
+    )}>
+      {roles.length === 0 && <Typography color="text.secondary">Aucun rôle.</Typography>}
+      {roles.map((r) => {
+        const enCours = enCoursLe(r.debut, r.fin, aujourdhui)
+        return (
+          <LigneHistorique key={r.id} enCours={enCours}>
+            <EtiquetteAssociation organisation={organisations.find((o) => o.id === idDe(r.organisation))} />
+            <Typography sx={{ fontWeight: 600 }}>{ROLES[r.role] ?? r.role}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {r.fin ? `du ${dateFr(r.debut)} au ${dateFr(r.fin)}` : `depuis le ${dateFr(r.debut)}`}
+            </Typography>
+            {enCours && peutModifier && (
+              <Button size="small" color="secondary" sx={{ ml: 'auto !important' }} onClick={() => { setFinPour(r); setFin(aujourdhui); setErreur(null) }}>
+                Fin de mandat
+              </Button>
+            )}
+          </LigneHistorique>
+        )
+      })}
+      {erreur && !ajout && !finPour && <Alert severity="error" sx={{ mt: 1 }}>{erreur}</Alert>}
+
+      <Dialog open={ajout} onClose={() => setAjout(false)} fullWidth maxWidth="xs">
+        <form onSubmit={(e) => envoyer(e, () => api('membres', '/api/roles', {
           methode: 'POST',
           corps: { personne: `/api/personnes/${personne}`, organisation: `/api/organisations/${organisation}`, role, debut },
         }))}>
-          <div className="grille">
-            <label>Rôle
-              <select value={role} onChange={(e) => setRole(e.target.value)} required>
-                <option value="" disabled>Choisir…</option>
-                {Object.entries(ROLES).map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
-              </select>
-            </label>
-            <label>Association
-              <select value={organisation} onChange={(e) => setOrganisation(e.target.value)} required>
-                <option value="" disabled>Choisir…</option>
-                {triees.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
-              </select>
-            </label>
-            <ChampDate libelle="Depuis le" valeur={debut} changer={setDebut} requis />
-          </div>
-          <p className="aide">Une seule personne à la fois par rôle et par association (sauf « représentant ») : terminez d'abord le mandat en cours.</p>
-          <div className="actions">
-            <button type="button" className="bouton" onClick={() => setAjout(false)}>Annuler</button>
-            <button className="bouton bouton-principal">Attribuer</button>
-          </div>
+          <DialogTitle>Attribuer un rôle</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2.2} sx={{ pt: 1 }}>
+              <TextField select label="Rôle" value={role} onChange={(e) => setRole(e.target.value)} required>
+                {Object.entries(ROLES).map(([code, libelle]) => <MenuItem key={code} value={code}>{libelle}</MenuItem>)}
+              </TextField>
+              <TextField select label="Association" value={organisation} onChange={(e) => setOrganisation(e.target.value)} required>
+                {jaxaj.map((o) => <MenuItem key={o.id} value={o.id}>{o.nom}</MenuItem>)}
+                {autres.length > 0 && <ListSubheader>Autres organisations</ListSubheader>}
+                {autres.map((o) => <MenuItem key={o.id} value={o.id}>{o.nom}</MenuItem>)}
+              </TextField>
+              <ChampDate libelle="Depuis le" valeur={debut} changer={setDebut} requis />
+              <Typography variant="body2" color="text.secondary">Un seul titulaire à la fois par rôle et par association (sauf représentant) : terminez d'abord le mandat en cours.</Typography>
+              {erreur && <Alert severity="error">{erreur}</Alert>}
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAjout(false)}>Annuler</Button>
+            <Button type="submit" variant="contained">Attribuer</Button>
+          </DialogActions>
         </form>
-      )}
-    </div>
+      </Dialog>
+
+      <Dialog open={!!finPour} onClose={() => setFinPour(null)} fullWidth maxWidth="xs">
+        <form onSubmit={(e) => envoyer(e, () => api('membres', `/api/roles/${finPour!.id}`, { methode: 'PATCH', corps: { fin } }))}>
+          <DialogTitle>Fin de mandat</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2.2} sx={{ pt: 1 }}>
+              <Typography>{finPour && (ROLES[finPour.role] ?? finPour.role)} · {organisations.find((o) => o.id === idDe(finPour?.organisation))?.nom}</Typography>
+              <ChampDate libelle="Dernier jour" valeur={fin} changer={setFin} requis />
+              {erreur && <Alert severity="error">{erreur}</Alert>}
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setFinPour(null)}>Annuler</Button>
+            <Button type="submit" variant="contained">Valider</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+    </Section>
   )
 }

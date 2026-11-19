@@ -1,8 +1,17 @@
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import MenuItem from '@mui/material/MenuItem'
+import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { useReference } from '../api/reference'
-import { nomComplet, type Personne } from '../api/types'
+import { aujourdhuiIso, nomComplet, type Personne } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
 
 /** Nouvelle adhésion pour une personne. L'accueil ne propose que « adhérent événement ». */
@@ -14,7 +23,7 @@ export function FormulaireAdhesion() {
   const accueilSeul = !aLeDroit('membres', 'admin', 'gestion')
   const [association, setAssociation] = useState('')
   const [categorie, setCategorie] = useState(accueilSeul ? 'public' : '')
-  const [debut, setDebut] = useState(() => new Date().toISOString().slice(0, 10))
+  const [debut, setDebut] = useState(aujourdhuiIso)
   const [fin, setFin] = useState('')
   const [auTitreDe, setAuTitreDe] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
@@ -47,39 +56,38 @@ export function FormulaireAdhesion() {
   }
 
   return (
-    <section>
-      <h1>Nouvelle adhésion{personne && <small> — {nomComplet(personne)}</small>}</h1>
-      <form className="carte formulaire" onSubmit={soumettre}>
-        <label>Association *
-          <select value={association} onChange={(e) => setAssociation(e.target.value)} required>
-            <option value="" disabled>Choisir…</option>
-            {associations.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}
-          </select>
-        </label>
-        <label>Catégorie *
-          <select value={categorie} onChange={(e) => setCategorie(e.target.value)} required>
-            <option value="" disabled>Choisir…</option>
-            {categories.map((c) => <option key={c.code} value={c.code}>{c.libelle}</option>)}
-          </select>
-        </label>
-        <div className="grille">
-          <ChampDate libelle="Début *" valeur={debut} changer={setDebut} requis />
-          <ChampDate libelle="Fin (incluse, vide = en cours)" valeur={fin} changer={setFin} />
-        </div>
-        {autres.length > 0 && (
-          <label>Au titre de (club ou association représenté)
-            <select value={auTitreDe} onChange={(e) => setAuTitreDe(e.target.value)}>
-              <option value="">—</option>
-              {autres.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}
-            </select>
-          </label>
-        )}
-        {erreur && <p className="erreur" role="alert">{erreur}</p>}
-        <div className="actions">
-          <button type="button" className="bouton" onClick={() => naviguer(-1)}>Annuler</button>
-          <button className="bouton bouton-principal" disabled={envoi}>{envoi ? 'Enregistrement…' : 'Enregistrer'}</button>
-        </div>
-      </form>
-    </section>
+    <Stack spacing={2}>
+      <Typography variant="h1">
+        Nouvelle adhésion
+        {personne && <Typography component="span" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 400 }}> — {nomComplet(personne)}</Typography>}
+      </Typography>
+      <Card component="form" onSubmit={soumettre}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Stack spacing={2.5}>
+            <TextField select label="Association" value={association} onChange={(e) => setAssociation(e.target.value)} required>
+              {associations.map((a) => <MenuItem key={a.id} value={a.id}>{a.nom}</MenuItem>)}
+            </TextField>
+            <TextField select label="Catégorie" value={categorie} onChange={(e) => setCategorie(e.target.value)} required>
+              {categories.map((c) => <MenuItem key={c.code} value={c.code}>{c.libelle}</MenuItem>)}
+            </TextField>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <ChampDate libelle="Début" valeur={debut} changer={setDebut} requis />
+              <ChampDate libelle="Fin (incluse, vide = en cours)" valeur={fin} changer={setFin} />
+            </Box>
+            {autres.length > 0 && (
+              <TextField select label="Au titre de (club ou association représenté)" value={auTitreDe} onChange={(e) => setAuTitreDe(e.target.value)}>
+                <MenuItem value="">—</MenuItem>
+                {autres.map((a) => <MenuItem key={a.id} value={a.id}>{a.nom}</MenuItem>)}
+              </TextField>
+            )}
+            {erreur && <Alert severity="error">{erreur}</Alert>}
+            <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+              <Button onClick={() => naviguer(-1)}>Annuler</Button>
+              <Button type="submit" variant="contained" disabled={envoi}>{envoi ? 'Enregistrement…' : 'Enregistrer'}</Button>
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
+    </Stack>
   )
 }

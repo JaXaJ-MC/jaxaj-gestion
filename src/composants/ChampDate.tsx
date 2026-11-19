@@ -1,19 +1,27 @@
-import { useId, type ReactNode } from 'react'
+import 'dayjs/locale/fr'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { frFR } from '@mui/x-date-pickers/locales'
+import dayjs from 'dayjs'
 
-/**
- * Champ de date avec son étiquette À CÔTÉ, reliée par un identifiant. Placé à l'intérieur d'un
- * <label>, le calendrier natif se referme dès que la souris passe dessus (Firefox, Safari) :
- * les événements du calendrier sont pris pour une activation de l'étiquette.
- */
-export function ChampDate({ libelle, valeur, changer, requis = false, aide }: {
-  libelle: string, valeur: string, changer: (v: string) => void, requis?: boolean, aide?: ReactNode
+// Le calendrier (MUI X) n'est chargé qu'avec les écrans qui en ont besoin : son fournisseur de
+// dates et sa traduction sont déclarés ici, pas dans le point d'entrée de l'appli.
+const textes = frFR.components.MuiLocalizationProvider.defaultProps.localeText
+
+/** Sélecteur de date de l'appli (identique sur tous les navigateurs). Valeur : « AAAA-MM-JJ » ou « ». */
+export function ChampDate({ libelle, valeur, changer, requis = false, aide, max }: {
+  libelle: string, valeur: string, changer: (v: string) => void, requis?: boolean, aide?: string, max?: string
 }) {
-  const id = useId()
   return (
-    <div className="champ">
-      <label htmlFor={id}>{libelle}</label>
-      <input id={id} type="date" value={valeur} onChange={(e) => changer(e.target.value)} required={requis} />
-      {aide}
-    </div>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr" localeText={textes}>
+    <DatePicker
+      label={libelle}
+      value={valeur ? dayjs(valeur) : null}
+      onChange={(v) => changer(v && v.isValid() ? v.format('YYYY-MM-DD') : '')}
+      maxDate={max ? dayjs(max) : undefined}
+      slotProps={{ textField: { required: requis, fullWidth: true, helperText: aide, error: !!aide } }}
+    />
+    </LocalizationProvider>
   )
 }

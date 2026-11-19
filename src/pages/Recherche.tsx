@@ -1,3 +1,23 @@
+import Check from '@mui/icons-material/Check'
+import Clear from '@mui/icons-material/Clear'
+import Search from '@mui/icons-material/Search'
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
+import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemButton from '@mui/material/ListItemButton'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
+import Snackbar from '@mui/material/Snackbar'
+import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
@@ -30,9 +50,9 @@ export function Recherche() {
   const [lignes, setLignes] = useState<LigneListe[] | null>(null)
   const [mois, setMois] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
-  const [choixMoyen, setChoixMoyen] = useState<string | null>(null)   // personne dont on choisit le moyen
+  const [menu, setMenu] = useState<{ ancre: HTMLElement, ligne: LigneListe } | null>(null)
   const [enCours, setEnCours] = useState<string | null>(null)
-  const [message, setMessage] = useState<{ type: 'ok' | 'erreur', texte: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', texte: string } | null>(null)
   const peutEncaisser = aLeDroit('membres', 'admin', 'gestion', 'accueil')
 
   useEffect(() => {
@@ -58,102 +78,120 @@ export function Recherche() {
   ), [lignes, filtre, mots])
 
   async function encaisser(ligne: LigneListe, moyen: string) {
+    setMenu(null)
     setEnCours(ligne.id)
-    setMessage(null)
     try {
       const nouvelle = await api<LigneListe>('membres', `/api/personnes/${ligne.id}/paiement-mois`, { methode: 'POST', corps: { mois, moyen } })
       setLignes((ls) => ls?.map((l) => (l.id === ligne.id ? nouvelle : l)) ?? null)
-      setMessage({ type: 'ok', texte: `${[ligne.prenom, ligne.nom].filter(Boolean).join(' ')} : ${euros(ligne.mois.reste)} encaissés (${MOYENS.find((m) => m.code === moyen)?.libelle.toLowerCase()}).` })
+      setMessage({ type: 'success', texte: `${[ligne.prenom, ligne.nom].filter(Boolean).join(' ')} : ${euros(ligne.mois.reste)} encaissés (${MOYENS.find((m) => m.code === moyen)?.libelle.toLowerCase()}).` })
     } catch (e) {
-      setMessage({ type: 'erreur', texte: (e as ErreurApi).statut === 403 ? 'Vous n\'avez pas le droit d\'encaisser cette cotisation.' : (e as Error).message })
+      setMessage({ type: 'error', texte: (e as ErreurApi).statut === 403 ? 'Vous n\'avez pas le droit d\'encaisser cette cotisation.' : (e as Error).message })
     } finally {
       setEnCours(null)
-      setChoixMoyen(null)
     }
   }
 
   const nomMois = mois ? new Date(`${mois}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : ''
   const libelleCategorie = (code: string | null) => ref?.categories.find((c) => c.code === code)?.libelle ?? code
   const organisation = (id: string | null) => ref?.organisations.find((o) => o.id === id)
+  const filtres: [Filtre, string][] = [['tous', 'Tous'], ['en_cours', 'Adhésion en cours'], ['a_payer', `À payer en ${nomMois.split(' ')[0] || 'ce mois'}`]]
 
   return (
-    <section>
-      <div className="recherche">
-        <input
-          type="search"
-          className="recherche-champ"
+    <Box>
+      <Box sx={{ position: 'sticky', top: { xs: 59, sm: 67 }, zIndex: 2, bgcolor: 'background.default', pb: 1.5, pt: 0.5, mt: -0.5 }}>
+        <TextField
           placeholder="Filtrer : nom, prénom ou surnom…"
           value={saisie}
           onChange={(e) => setSaisie(e.target.value)}
-          aria-label="Filtrer la liste"
+          slotProps={{
+            htmlInput: { 'aria-label': 'Filtrer la liste' },
+            input: {
+              startAdornment: <InputAdornment position="start"><Search /></InputAdornment>,
+              endAdornment: saisie && (
+                <InputAdornment position="end">
+                  <IconButton aria-label="Effacer" onClick={() => setSaisie('')} edge="end"><Clear /></IconButton>
+                </InputAdornment>
+              ),
+              sx: { fontSize: '1.1rem', bgcolor: 'background.paper' },
+            },
+          }}
         />
-        <div className="filtres" role="group" aria-label="Afficher">
-          {([['tous', 'Tous'], ['en_cours', 'Adhésion en cours'], ['a_payer', `À payer en ${nomMois.split(' ')[0] || 'ce mois'}`]] as [Filtre, string][]).map(([f, libelle]) => (
-            <button key={f} className={`filtre ${filtre === f ? 'actif' : ''}`} aria-pressed={filtre === f} onClick={() => setFiltre(f)}>
-              {libelle} <span className="compte">{comptes[f]}</span>
-            </button>
+        <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap', rowGap: 1 }}>
+          {filtres.map(([f, libelle]) => (
+            <Chip key={f} label={`${libelle} · ${comptes[f]}`} onClick={() => setFiltre(f)}
+              color={filtre === f ? 'primary' : 'default'} variant={filtre === f ? 'filled' : 'outlined'} />
           ))}
-        </div>
-      </div>
+        </Stack>
+      </Box>
 
-      {message && <p className={`bandeau ${message.type === 'ok' ? 'bandeau-ok' : 'bandeau-erreur'}`} role="status">{message.texte}</p>}
-      {erreur && <p className="erreur" role="alert">{erreur}</p>}
-      {!lignes && !erreur && <p className="aide">Chargement de la liste…</p>}
+      {erreur && <Alert severity="error">{erreur}</Alert>}
+      {!lignes && !erreur && <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}><CircularProgress /></Box>}
 
       {lignes && visibles.length === 0 && (
-        <div className="carte vide">
-          <p>Personne ne correspond{saisie ? ` à « ${saisie} »` : ''}.</p>
-          <Link className="bouton bouton-principal" to={`/personnes/nouvelle?nom=${encodeURIComponent(saisie)}`}>Créer une fiche</Link>
-        </div>
+        <Card sx={{ p: 3, textAlign: 'center' }}>
+          <Typography sx={{ mb: 2 }}>Personne ne correspond{saisie ? ` à « ${saisie} »` : ''}.</Typography>
+          <Button variant="contained" component={Link} to={`/personnes/nouvelle?nom=${encodeURIComponent(saisie)}`}>Créer une fiche</Button>
+        </Card>
       )}
 
       {visibles.length > 0 && (
         <>
-          <p className="aide resultat">{visibles.length === lignes?.length ? `${visibles.length} personnes` : `${visibles.length} sur ${lignes?.length}`} · {nomMois}</p>
-          <ul className="liste">
-            {visibles.map((l) => (
-              <li key={l.id} className="liste-entree">
-                <Link to={`/personnes/${l.id}`} className="liste-personne">
-                  <span className="liste-nom">
-                    <Surligne texte={[l.prenom, l.nom].filter(Boolean).join(' ')} mots={mots} />
-                    {l.surnom && <span className="surnom"> « <Surligne texte={l.surnom} mots={mots} /> »</span>}
-                  </span>
-                  {l.roles.length > 0 && (
-                    <span className="liste-roles">
-                      {l.roles.map((r) => (
-                        <span key={r.role + r.organisation} className="role">{ROLES[r.role] ?? r.role} · {organisation(r.organisation)?.nom}</span>
-                      ))}
-                    </span>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {visibles.length === lignes?.length ? `${visibles.length} personnes` : `${visibles.length} sur ${lignes?.length}`} · {nomMois}
+          </Typography>
+          <Card>
+            <List disablePadding>
+              {visibles.map((l, i) => (
+                <ListItem key={l.id} disablePadding divider={i < visibles.length - 1}
+                  sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' }, contentVisibility: 'auto', containIntrinsicSize: 'auto 64px' }}>
+                  <ListItemButton component={Link} to={`/personnes/${l.id}`} sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 1.1, minWidth: 0, width: { xs: '100%', sm: 'auto' } }}>
+                    <Typography sx={{ fontWeight: 600 }}>
+                      <Surligne texte={[l.prenom, l.nom].filter(Boolean).join(' ')} mots={mots} />
+                      {l.surnom && <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}> « <Surligne texte={l.surnom} mots={mots} /> »</Box>}
+                    </Typography>
+                    {l.roles.length > 0 && (
+                      <Stack direction="row" spacing={0.5} sx={{ my: 0.4, flexWrap: 'wrap', rowGap: 0.5 }}>
+                        {l.roles.map((r) => (
+                          <Chip key={r.role + r.organisation} size="small" color="secondary" variant="outlined"
+                            label={`${ROLES[r.role] ?? r.role} · ${organisation(r.organisation)?.nom ?? ''}`} />
+                        ))}
+                      </Stack>
+                    )}
+                    <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', flexWrap: 'wrap', color: 'text.secondary', fontSize: '.84rem' }}>
+                      {l.adhesion
+                        ? <><EtiquetteAssociation organisation={organisation(l.association)} /><span>{libelleCategorie(l.categorie)}</span></>
+                        : <span>{l.derniere_cotisation ? `Dernière cotisation : ${dateFr(l.derniere_cotisation).slice(3)}` : 'Aucune cotisation'}</span>}
+                    </Stack>
+                  </ListItemButton>
+                  {l.mois.statut !== 'aucune_adhesion' && (
+                    <Box sx={{ flexShrink: 0, px: 2, pb: { xs: 1.2, sm: 0 }, pl: { xs: 2, sm: 1 } }}>
+                      {(l.mois.statut === 'paye' || l.mois.statut === 'gratuit') && (
+                        <Chip size="small" color="success" variant="outlined" icon={<Check />} label={l.mois.statut === 'paye' ? 'Payé' : 'Gratuit'} />
+                      )}
+                      {l.mois.statut === 'sans_tarif' && <Chip size="small" label="Pas de tarif" />}
+                      {aPayer(l) && peutEncaisser && (
+                        <Button variant="contained" size="small" disabled={enCours === l.id}
+                          onClick={(e) => setMenu({ ancre: e.currentTarget, ligne: l })}>
+                          Payé ce mois-ci · {euros(l.mois.reste)}
+                        </Button>
+                      )}
+                    </Box>
                   )}
-                  <span className="liste-infos">
-                    {l.adhesion
-                      ? <><EtiquetteAssociation organisation={organisation(l.association)} /> {libelleCategorie(l.categorie)}</>
-                      : l.derniere_cotisation ? `Dernière cotisation : ${dateFr(l.derniere_cotisation).slice(3)}` : 'Aucune cotisation'}
-                  </span>
-                </Link>
-                <div className="liste-action">
-                  {l.mois.statut === 'paye' && <span className="statut statut-paye">✓ Payé</span>}
-                  {l.mois.statut === 'gratuit' && <span className="statut statut-paye">Gratuit</span>}
-                  {l.mois.statut === 'sans_tarif' && <span className="statut">Pas de tarif</span>}
-                  {aPayer(l) && peutEncaisser && choixMoyen !== l.id && (
-                    <button className="bouton bouton-principal bouton-petit" disabled={enCours === l.id} onClick={() => setChoixMoyen(l.id)}>
-                      Payé ce mois-ci · {euros(l.mois.reste)}
-                    </button>
-                  )}
-                  {aPayer(l) && choixMoyen === l.id && (
-                    <div className="moyens" role="group" aria-label="Moyen de paiement">
-                      {MOYENS.map((m) => (
-                        <button key={m.code} className="bouton bouton-petit" disabled={enCours === l.id} onClick={() => encaisser(l, m.code)}>{m.libelle}</button>
-                      ))}
-                      <button className="bouton bouton-petit bouton-fermer" aria-label="Annuler" onClick={() => setChoixMoyen(null)}>✕</button>
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+                </ListItem>
+              ))}
+            </List>
+          </Card>
         </>
       )}
-    </section>
+
+      <Menu anchorEl={menu?.ancre} open={!!menu} onClose={() => setMenu(null)}>
+        <MenuItem disabled dense>Moyen de paiement</MenuItem>
+        {MOYENS.map((m) => <MenuItem key={m.code} onClick={() => menu && encaisser(menu.ligne, m.code)}>{m.libelle}</MenuItem>)}
+      </Menu>
+
+      <Snackbar open={!!message} autoHideDuration={5000} onClose={() => setMessage(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        {message ? <Alert severity={message.type} variant="filled" onClose={() => setMessage(null)}>{message.texte}</Alert> : undefined}
+      </Snackbar>
+    </Box>
   )
 }

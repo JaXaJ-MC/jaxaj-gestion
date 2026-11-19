@@ -9,7 +9,7 @@ Interface web de l'outil de gestion du club, pensée d'abord pour le smartphone 
 - création et modification d'une fiche, nouvelle adhésion ;
 - « Transformer en compte » : crée le compte de la personne, avec ses droits et l'adresse d'envoi de l'invitation.
 
-React, TypeScript, Vite. Charte du club : enveloppe noire du Club, cartes blanches, Joker (vert, violet) en accents, étiquettes aux couleurs de chaque association, lauburu pour Euskadi.
+React, TypeScript, Vite, MUI (Material UI) en thème sombre uniquement (`src/theme.ts`) : fonds gris très foncés, barre du haut noire (le Club), vert et violet du Joker éclaircis pour les actions, étiquettes aux couleurs franches de chaque association, lauburu pour Euskadi. Calendrier MUI X, chargé seulement avec la fiche et les formulaires.
 
 ## Architecture
 

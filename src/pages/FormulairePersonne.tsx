@@ -1,7 +1,15 @@
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
-import type { Personne } from '../api/types'
+import { aujourdhuiIso, type Personne } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
 
 interface Champs {
@@ -11,6 +19,8 @@ interface Champs {
 
 const vide: Champs = { nom: '', prenom: '', surnom: '', dateNaissance: '', telephone: '', email: '',
   ligne1: '', code_postal: '', ville: '', pays: 'FR', commentaire: '' }
+
+const grille = { display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }
 
 /** Création (/personnes/nouvelle) ou modification (/personnes/:id/modifier) d'une fiche. */
 export function FormulairePersonne() {
@@ -34,9 +44,11 @@ export function FormulairePersonne() {
     }).catch((e) => setErreur(e))
   }, [id])
 
-  const champ = (nom: keyof Champs) => ({
+  const champ = (nom: keyof Champs, cleErreur: string = nom) => ({
     value: champs[nom],
     onChange: (e: { target: { value: string } }) => setChamps((c) => ({ ...c, [nom]: e.target.value })),
+    error: !!erreur?.details[cleErreur],
+    helperText: erreur?.details[cleErreur],
   })
 
   async function soumettre(e: FormEvent) {
@@ -63,39 +75,42 @@ export function FormulairePersonne() {
     }
   }
 
-  const aide = (cle: string) => erreur?.details[cle] && <span className="erreur-champ">{erreur.details[cle]}</span>
-
   return (
-    <section>
-      <h1>{id ? 'Modifier la fiche' : 'Nouvelle fiche'}</h1>
-      <form className="carte formulaire" onSubmit={soumettre}>
-        <div className="grille">
-          <label>Nom *<input {...champ('nom')} required autoFocus />{aide('nom')}</label>
-          <label>Prénom<input {...champ('prenom')} />{aide('prenom')}</label>
-          <label>Surnom (nom de route)<input {...champ('surnom')} />{aide('surnom')}</label>
-        </div>
-        {detail && (
-          <>
-            <div className="grille">
-              <ChampDate libelle="Date de naissance" valeur={champs.dateNaissance} changer={(v) => setChamps((c) => ({ ...c, dateNaissance: v }))} aide={aide('dateNaissance')} />
-              <label>Téléphone<input type="tel" {...champ('telephone')} />{aide('telephone')}</label>
-              <label>E-mail<input type="email" {...champ('email')} />{aide('email')}</label>
-            </div>
-            <label>Adresse<input {...champ('ligne1')} />{aide('adresse')}</label>
-            <div className="grille">
-              <label>Code postal<input {...champ('code_postal')} inputMode="numeric" /></label>
-              <label>Ville<input {...champ('ville')} /></label>
-              <label>Pays (code)<input {...champ('pays')} maxLength={2} /></label>
-            </div>
-            <label>Commentaire<textarea rows={3} {...champ('commentaire')} /></label>
-          </>
-        )}
-        {erreur && !Object.keys(erreur.details).length && <p className="erreur" role="alert">{erreur.message}</p>}
-        <div className="actions">
-          <button type="button" className="bouton" onClick={() => naviguer(-1)}>Annuler</button>
-          <button className="bouton bouton-principal" disabled={envoi}>{envoi ? 'Enregistrement…' : 'Enregistrer'}</button>
-        </div>
-      </form>
-    </section>
+    <Stack spacing={2}>
+      <Typography variant="h1">{id ? 'Modifier la fiche' : 'Nouvelle fiche'}</Typography>
+      <Card component="form" onSubmit={soumettre}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Stack spacing={2.5}>
+            <Box sx={grille}>
+              <TextField label="Nom" required autoFocus {...champ('nom')} />
+              <TextField label="Prénom" {...champ('prenom')} />
+              <TextField label="Surnom (nom de route)" {...champ('surnom')} />
+            </Box>
+            {detail && (
+              <>
+                <Box sx={grille}>
+                  <ChampDate libelle="Date de naissance" valeur={champs.dateNaissance} max={aujourdhuiIso()}
+                    changer={(v) => setChamps((c) => ({ ...c, dateNaissance: v }))} aide={erreur?.details.dateNaissance} />
+                  <TextField label="Téléphone" type="tel" {...champ('telephone')} />
+                  <TextField label="E-mail" type="email" {...champ('email')} />
+                </Box>
+                <TextField label="Adresse" {...champ('ligne1', 'adresse')} />
+                <Box sx={grille}>
+                  <TextField label="Code postal" slotProps={{ htmlInput: { inputMode: 'numeric' } }} {...champ('code_postal')} />
+                  <TextField label="Ville" {...champ('ville')} />
+                  <TextField label="Pays (code ISO)" slotProps={{ htmlInput: { maxLength: 2 } }} {...champ('pays')} />
+                </Box>
+                <TextField label="Commentaire" multiline minRows={2} {...champ('commentaire')} />
+              </>
+            )}
+            {erreur && !Object.keys(erreur.details).length && <Alert severity="error">{erreur.message}</Alert>}
+            <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+              <Button onClick={() => naviguer(-1)}>Annuler</Button>
+              <Button type="submit" variant="contained" disabled={envoi}>{envoi ? 'Enregistrement…' : 'Enregistrer'}</Button>
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
+    </Stack>
   )
 }
