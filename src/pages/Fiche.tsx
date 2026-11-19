@@ -7,19 +7,17 @@ import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as LienRouteur, useParams } from 'react-router'
 import { aLeDroit, api } from '../api/client'
 import { useReference } from '../api/reference'
-import { aujourdhuiIso, dateFr, enCoursLe, euros, idDe, nomComplet, periodeFr, telephoneFr, type Acces, type Adhesion, type Cotisation, type Personne } from '../api/types'
+import { aujourdhuiIso, dateFr, enCoursLe, idDe, nomComplet, telephoneFr, type Acces, type Adhesion, type CotisationEtat, type Personne } from '../api/types'
 import { ActionsAdhesion } from '../composants/ActionsAdhesion'
 import { CorrigerPeriode } from '../composants/CorrigerPeriode'
 import { BlocCompte } from '../composants/BlocCompte'
+import { BlocCotisations } from '../composants/BlocCotisations'
+import { CalculCotisations } from '../composants/CalculCotisations'
 import { BlocRoles } from '../composants/BlocRoles'
 import { Definitions } from '../composants/Definitions'
 import { EtiquetteAssociation } from '../composants/Etiquette'
@@ -30,7 +28,7 @@ export function Fiche() {
   const ref = useReference()
   const [personne, setPersonne] = useState<Personne | null>(null)
   const [adhesions, setAdhesions] = useState<Adhesion[]>([])
-  const [cotisations, setCotisations] = useState<Cotisation[]>([])
+  const [cotisations, setCotisations] = useState<CotisationEtat[]>([])
   const [acces, setAcces] = useState<Acces | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [aujourdhui] = useState(aujourdhuiIso)
@@ -39,12 +37,12 @@ export function Fiche() {
     Promise.all([
       api<Personne>('membres', `/api/personnes/${id}`),
       api<Adhesion[]>('membres', `/api/adhesions?membre=${id}&itemsPerPage=200`),
-      api<Cotisation[]>('membres', `/api/cotisations?membre=${id}&itemsPerPage=200`),
+      api<CotisationEtat[]>('membres', `/api/personnes/${id}/cotisations`),
       api<Acces>('membres', `/api/personnes/${id}/acces`),
     ]).then(([p, a, c, x]) => {
       setPersonne(p)
       setAdhesions([...a].sort((u, v) => v.debut.localeCompare(u.debut)))
-      setCotisations([...c].sort((u, v) => v.debut.localeCompare(u.debut)))
+      setCotisations(c)  // déjà triées, la plus récente d'abord
       setAcces(x)
     }).catch((e) => setErreur(e.message))
   }, [id])
@@ -108,25 +106,8 @@ export function Fiche() {
 
       <BlocRoles personne={personne.id} organisations={ref?.organisations ?? []} />
 
-      <Section titre="Cotisations">
-        {cotisations.length === 0 && <Typography color="text.secondary">Aucune cotisation.</Typography>}
-        {cotisations.length > 0 && (
-          <Table size="small">
-            <TableBody>
-              {cotisations.map((c) => (
-                <TableRow key={c.id} sx={{ '&:last-child td': { border: 0 } }}>
-                  <TableCell sx={{ pl: 0, whiteSpace: 'nowrap' }}>{periodeFr(c.debut, c.fin)}</TableCell>
-                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                    <EtiquetteAssociation organisation={organisation(adhesionDe(c.adhesion)?.association ?? null)} />
-                  </TableCell>
-                  <TableCell align="right" sx={{ pr: 0, whiteSpace: 'nowrap' }} title={c.motifGratuite ?? ''}>
-                    {c.gratuite ? 'gratuite' : euros(c.montant)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+      <Section titre="Cotisations" action={aLeDroit('membres', 'admin') && <CalculCotisations personne={personne.id} apres={charger} />}>
+        <BlocCotisations cotisations={cotisations} associationDe={(a) => organisation(adhesionDe(a)?.association ?? null)} />
       </Section>
 
       {aLeDroit('comptes', 'admin') && <BlocCompte personne={personne} />}

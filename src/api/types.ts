@@ -54,6 +54,27 @@ export interface Cotisation {
   motifGratuite: string | null
 }
 
+/** Cotisation avec ce qui en est réglé (GET /api/personnes/{id}/cotisations). */
+export interface CotisationEtat extends Cotisation {
+  regle: string
+  aJour: boolean
+  calculee: boolean        // créée par « Calculer les cotisations »
+  historique: boolean | null  // réglée par un paiement « Historique reconstitué »
+}
+
+export interface Tarif {
+  id: string
+  categorie: string        // IRI
+  association: string | null  // IRI ; vide = toutes les associations
+  periodicite: 'mensuelle' | 'annuelle' | 'ponctuelle'
+  montant: string
+  debut: string
+  fin: string | null
+  decision: string | null
+}
+
+export const PERIODICITES: Record<Tarif['periodicite'], string> = { mensuelle: 'par mois', annuelle: 'par an', ponctuelle: 'ponctuel' }
+
 export interface Acces {
   acces: boolean
   jour: string

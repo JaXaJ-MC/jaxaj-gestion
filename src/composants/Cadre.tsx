@@ -22,6 +22,7 @@ export function Cadre() {
   const { utilisateur } = useSession()
   const naviguer = useNavigate()
   const [menu, setMenu] = useState<HTMLElement | null>(null)
+  const admin = utilisateur?.droits.includes('membres:admin') ?? false
   return (
     <>
       <AppBar position="sticky" elevation={0}>
@@ -32,6 +33,7 @@ export function Cadre() {
           <IconButton component={NavLink} to="/personnes/nouvelle" aria-label="Nouvelle fiche" sx={{ ...lien, display: { xs: 'inline-flex', sm: 'none' } }}>
             <PersonAdd />
           </IconButton>
+          {admin && <Button component={NavLink} to="/tarifs" sx={{ ...lien, display: { xs: 'none', sm: 'inline-flex' } }}>Tarifs</Button>}
           <Box sx={{ flex: 1 }} />
           <IconButton color="inherit" aria-label="Mon compte" onClick={(e) => setMenu(e.currentTarget)}>
             <AccountCircle />
@@ -39,6 +41,7 @@ export function Cadre() {
           <Menu anchorEl={menu} open={!!menu} onClose={() => setMenu(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
             <MenuItem disabled><ListItemText primary={utilisateur?.username} secondary="connecté" /></MenuItem>
+            {admin && <MenuItem onClick={() => { setMenu(null); naviguer('/tarifs') }}>Tarifs</MenuItem>}
             <MenuItem onClick={async () => { setMenu(null); await deconnexion(); naviguer('/connexion') }}>Déconnexion</MenuItem>
           </Menu>
         </Toolbar>
