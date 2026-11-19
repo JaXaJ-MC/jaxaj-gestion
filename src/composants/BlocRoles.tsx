@@ -24,6 +24,7 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
   const [organisation, setOrganisation] = useState('')
   const [role, setRole] = useState('')
   const [debut, setDebut] = useState(aujourdhuiIso)
+  const [jusquau, setJusquau] = useState('')  // rôle passé : date de fin dès l'attribution
   const [finPour, setFinPour] = useState<Role | null>(null)
   const [fin, setFin] = useState(aujourdhuiIso)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -55,7 +56,7 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
 
   return (
     <Section titre="Rôles" action={peutModifier && (
-      <Button size="small" startIcon={<Add />} onClick={() => { setAjout(true); setErreur(null); setRole(''); setOrganisation(''); setDebut(aujourdhui) }}>
+      <Button size="small" startIcon={<Add />} onClick={() => { setAjout(true); setErreur(null); setRole(''); setOrganisation(''); setDebut(aujourdhui); setJusquau('') }}>
         Attribuer un rôle
       </Button>
     )}>
@@ -82,7 +83,7 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
       <Dialog open={ajout} onClose={() => setAjout(false)} fullWidth maxWidth="xs">
         <form onSubmit={(e) => envoyer(e, () => api('membres', '/api/roles', {
           methode: 'POST',
-          corps: { personne: `/api/personnes/${personne}`, organisation: `/api/organisations/${organisation}`, role, debut },
+          corps: { personne: `/api/personnes/${personne}`, organisation: `/api/organisations/${organisation}`, role, debut, fin: jusquau || null },
         }))}>
           <DialogTitle>Attribuer un rôle</DialogTitle>
           <DialogContent>
@@ -96,7 +97,8 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
                 {autres.map((o) => <MenuItem key={o.id} value={o.id}>{o.nom}</MenuItem>)}
               </TextField>
               <ChampDate libelle="Depuis le" valeur={debut} changer={setDebut} requis />
-              <Typography variant="body2" color="text.secondary">Un seul titulaire à la fois par rôle et par association (sauf représentant) : terminez d'abord le mandat en cours.</Typography>
+              <ChampDate libelle="Jusqu'au (inclus, vide = en cours)" valeur={jusquau} changer={setJusquau} />
+              <Typography variant="body2" color="text.secondary">Pour un rôle passé, indiquez aussi la date de fin. Un seul titulaire à la fois par rôle et par association (sauf représentant).</Typography>
               {erreur && <Alert severity="error">{erreur}</Alert>}
             </Stack>
           </DialogContent>
