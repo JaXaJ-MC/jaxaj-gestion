@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { aujourdhuiIso, dateFr, enCoursLe, idDe, ROLES, type Organisation, type Role } from '../api/types'
 import { ChampDate } from './ChampDate'
+import { CorrigerPeriode } from './CorrigerPeriode'
 import { EtiquetteAssociation } from './Etiquette'
 import { LigneHistorique, Section } from './Section'
 
@@ -75,6 +76,8 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
                 Fin de mandat
               </Button>
             )}
+            {peutModifier && <CorrigerPeriode chemin={`/api/roles/${r.id}`} debut={r.debut} fin={r.fin} seul={!enCours} apres={charger}
+              libelle={`${ROLES[r.role] ?? r.role} · ${organisations.find((o) => o.id === idDe(r.organisation))?.nom ?? ''}`} />}
           </LigneHistorique>
         )
       })}

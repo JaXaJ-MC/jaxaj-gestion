@@ -18,6 +18,7 @@ import { aLeDroit, api } from '../api/client'
 import { useReference } from '../api/reference'
 import { aujourdhuiIso, dateFr, enCoursLe, euros, idDe, nomComplet, periodeFr, telephoneFr, type Acces, type Adhesion, type Cotisation, type Personne } from '../api/types'
 import { ActionsAdhesion } from '../composants/ActionsAdhesion'
+import { CorrigerPeriode } from '../composants/CorrigerPeriode'
 import { BlocCompte } from '../composants/BlocCompte'
 import { BlocRoles } from '../composants/BlocRoles'
 import { Definitions } from '../composants/Definitions'
@@ -98,6 +99,8 @@ export function Fiche() {
                 {ad.auTitreDe && ` · au titre de ${organisation(ad.auTitreDe)?.nom}`}
               </Typography>
               {enCours && gestion && <ActionsAdhesion adhesion={ad} categories={ref?.categories ?? []} apres={charger} />}
+              {gestion && <CorrigerPeriode chemin={`/api/adhesions/${ad.id}`} debut={ad.debut} fin={ad.fin} seul={!enCours} apres={charger}
+                libelle={`${categorie(ad.categorie)?.libelle ?? idDe(ad.categorie)} · ${organisation(ad.association)?.nom ?? ''}`} />}
             </LigneHistorique>
           )
         })}
