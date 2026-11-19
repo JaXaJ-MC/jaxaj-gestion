@@ -136,6 +136,8 @@ export const ROLES: Record<string, string> = {
   vice_president: 'Vice-président(e)',
   tresorier: 'Trésorier(ère)',
   secretaire: 'Secrétaire',
+  sergent_armes: 'Sergent d\'armes',
+  chef_de_file: 'Chef de file',
   representant: 'Représentant(e)',
 }
 
