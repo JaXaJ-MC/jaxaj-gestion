@@ -17,7 +17,7 @@ import { euros } from '../api/types'
 import { ChampDate } from './ChampDate'
 
 interface SansTarif { association: string, categorie: string, debut: string, fin: string }  // mois AAAA-MM
-interface Resultat { creees: number, total: string, reglees: number, conservees: number, sans_tarif: SansTarif[] }
+interface Resultat { creees: number, total: string, reglees: number, exemptees: number, conservees: number, sans_tarif: SansTarif[] }
 
 /** « 2022-04 » → « avril 2022 » */
 const moisFr = (m: string) => new Date(`${m}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
@@ -93,6 +93,7 @@ export function CalculCotisations({ personne, apres }: { personne: string, apres
                 {apercu.creees
                   ? <>{apercu.creees} cotisation{apercu.creees > 1 ? 's' : ''} pour {euros(apercu.total)}, dont {apercu.reglees} considérée{apercu.reglees > 1 ? 's' : ''} comme réglée{apercu.reglees > 1 ? 's' : ''}.</>
                   : 'Aucune cotisation à créer.'}
+                {apercu.exemptees > 0 && <> {apercu.exemptees} gratuite{apercu.exemptees > 1 ? 's' : ''} (exemption).</>}
                 {apercu.conservees > 0 && <> {apercu.conservees} période{apercu.conservees > 1 ? 's' : ''} déjà couverte{apercu.conservees > 1 ? 's' : ''}, conservée{apercu.conservees > 1 ? 's' : ''}.</>}
               </Alert>
             )}

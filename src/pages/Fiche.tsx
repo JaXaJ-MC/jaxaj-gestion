@@ -96,8 +96,10 @@ export function Fiche() {
                 {ad.fin ? `du ${dateFr(ad.debut)} au ${dateFr(ad.fin)}` : `depuis le ${dateFr(ad.debut)}`}
                 {ad.auTitreDe && ` · au titre de ${organisation(ad.auTitreDe)?.nom}`}
               </Typography>
-              {enCours && gestion && <ActionsAdhesion adhesion={ad} categories={ref?.categories ?? []} apres={charger} />}
-              {gestion && <CorrigerPeriode chemin={`/api/adhesions/${ad.id}`} debut={ad.debut} fin={ad.fin} seul={!enCours} apres={charger}
+              {ad.exemption && <Chip size="small" variant="outlined" label="exempté" title={ad.exemption} />}
+              {enCours && gestion && <ActionsAdhesion adhesion={ad} apres={charger}
+                categories={(ref?.categories ?? []).filter((c) => c.volet === (organisation(ad.association)?.volet ?? c.volet))} />}
+              {gestion && <CorrigerPeriode chemin={`/api/adhesions/${ad.id}`} debut={ad.debut} fin={ad.fin} seul={!enCours} apres={charger} exemption={ad.exemption ?? null}
                 libelle={`${categorie(ad.categorie)?.libelle ?? idDe(ad.categorie)} · ${organisation(ad.association)?.nom ?? ''}`} />}
             </LigneHistorique>
           )

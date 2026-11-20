@@ -14,7 +14,10 @@ import { useReference } from '../api/reference'
 import { aujourdhuiIso, nomComplet, type Personne } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
 
-/** Nouvelle adhésion pour une personne. L'accueil ne propose que « adhérent événement ». */
+/**
+ * Nouvelle adhésion pour une personne. Les catégories proposées sont celles de l'association
+ * choisie (club ou événementiel). L'accueil ne propose que le public, chez Productions.
+ */
 export function FormulaireAdhesion() {
   const { id } = useParams()
   const naviguer = useNavigate()
@@ -26,6 +29,7 @@ export function FormulaireAdhesion() {
   const [debut, setDebut] = useState(aujourdhuiIso)
   const [fin, setFin] = useState('')
   const [auTitreDe, setAuTitreDe] = useState('')
+  const [exemption, setExemption] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
 
@@ -33,7 +37,15 @@ export function FormulaireAdhesion() {
 
   const associations = ref?.organisations.filter((o) => o.genre === 'association_jaxaj') ?? []
   const autres = ref?.organisations.filter((o) => o.genre !== 'association_jaxaj') ?? []
-  const categories = (ref?.categories ?? []).filter((c) => !accueilSeul || c.code === 'public')
+  // L'accueil inscrit le public chez Productions : présélectionnée.
+  const choisie = association || (accueilSeul ? associations.find((a) => a.volet === 'evenementiel')?.id ?? '' : '')
+  const volet = associations.find((a) => a.id === choisie)?.volet
+  const categories = (ref?.categories ?? []).filter((c) => (!volet || c.volet === volet) && (!accueilSeul || c.code === 'public'))
+  const choisirAssociation = (id: string) => {
+    setAssociation(id)
+    const v = associations.find((a) => a.id === id)?.volet
+    if (v && ref?.categories.find((c) => c.code === categorie)?.volet !== v) setCategorie('')
+  }
 
   async function soumettre(e: FormEvent) {
     e.preventDefault()
@@ -43,8 +55,9 @@ export function FormulaireAdhesion() {
       await api('membres', '/api/adhesions', {
         methode: 'POST',
         corps: {
-          membre: `/api/personnes/${id}`, association: `/api/organisations/${association}`, categorie: `/api/categories/${categorie}`,
+          membre: `/api/personnes/${id}`, association: `/api/organisations/${choisie}`, categorie: `/api/categories/${categorie}`,
           debut, fin: fin || null, auTitreDe: auTitreDe ? `/api/organisations/${auTitreDe}` : null,
+          ...(accueilSeul ? {} : { exemption }),
         },
       })
       naviguer(`/personnes/${id}`)
@@ -64,7 +77,7 @@ export function FormulaireAdhesion() {
       <Card component="form" onSubmit={soumettre}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Stack spacing={2.5}>
-            <TextField select label="Association" value={association} onChange={(e) => setAssociation(e.target.value)} required>
+            <TextField select label="Association" value={choisie} onChange={(e) => choisirAssociation(e.target.value)} required>
               {associations.map((a) => <MenuItem key={a.id} value={a.id}>{a.nom}</MenuItem>)}
             </TextField>
             <TextField select label="Catégorie" value={categorie} onChange={(e) => setCategorie(e.target.value)} required>
@@ -74,6 +87,10 @@ export function FormulaireAdhesion() {
               <ChampDate libelle="Début" valeur={debut} changer={setDebut} requis />
               <ChampDate libelle="Fin (incluse, vide = en cours)" valeur={fin} changer={setFin} />
             </Box>
+            {!accueilSeul && ref?.categories.find((c) => c.code === categorie)?.cotisation === 'periodique' && (
+              <TextField label="Exemption de cotisation (motif)" value={exemption} onChange={(e) => setExemption(e.target.value)}
+                placeholder="Membre du bureau (statuts)" helperText="Vide = cotisation normale. Exemptée, la cotisation est calculée gratuite." />
+            )}
             {autres.length > 0 && (
               <TextField select label="Au titre de (club ou association représenté)" value={auTitreDe} onChange={(e) => setAuTitreDe(e.target.value)}>
                 <MenuItem value="">—</MenuItem>

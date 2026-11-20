@@ -25,12 +25,15 @@ export interface Organisation {
   sigle: string | null
   genre: string
   parent: string | null
+  volet?: 'club' | 'evenementiel' | null  // associations JaXaJ
 }
 
 export interface Categorie {
   code: string
   libelle: string
   membreClub: boolean
+  volet: 'club' | 'evenementiel'  // club : mère et chapitres ; evenementiel : Productions
+  cotisation: 'periodique' | 'ponctuelle' | 'aucune'
 }
 
 export interface Adhesion {
@@ -42,6 +45,7 @@ export interface Adhesion {
   fin: string | null
   auTitreDe: string | null
   commentaire: string | null
+  exemption: string | null  // motif d'exemption de cotisation
 }
 
 export interface Cotisation {

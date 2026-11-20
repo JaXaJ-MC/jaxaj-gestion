@@ -7,6 +7,7 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
+import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useState, type FormEvent } from 'react'
@@ -17,24 +18,27 @@ import { ChampDate } from './ChampDate'
  * Corriger une ligne d'historique (adhésion, rôle) saisie avec de mauvaises dates : début et fin
  * modifiables par la gestion ; suppression d'une saisie erronée réservée à l'administration.
  */
-export function CorrigerPeriode({ chemin, libelle, debut, fin, seul, apres }: {
+export function CorrigerPeriode({ chemin, libelle, debut, fin, seul, apres, exemption }: {
   chemin: string        // /api/adhesions/{id} ou /api/roles/{id}
   libelle: string       // « Full patch · JaXaJ MC »
   debut: string
   fin: string | null
   seul: boolean         // seul bouton de la ligne : poussé à droite
   apres: () => void
+  exemption?: string | null  // adhésion : motif d'exemption modifiable (undefined = pas de champ)
 }) {
   const [ouvert, setOuvert] = useState(false)
   const [nouveauDebut, setNouveauDebut] = useState('')
   const [nouvelleFin, setNouvelleFin] = useState('')
   const [confirmer, setConfirmer] = useState(false)
+  const [motif, setMotif] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
   const admin = aLeDroit('membres', 'admin')
 
   function ouvrir() {
     setNouveauDebut(debut.slice(0, 10))
     setNouvelleFin(fin?.slice(0, 10) ?? '')
+    setMotif(exemption ?? '')
     setConfirmer(false)
     setErreur(null)
     setOuvert(true)
@@ -53,7 +57,7 @@ export function CorrigerPeriode({ chemin, libelle, debut, fin, seul, apres }: {
 
   const enregistrer = (e: FormEvent) => {
     e.preventDefault()
-    agir(() => api('membres', chemin, { methode: 'PATCH', corps: { debut: nouveauDebut, fin: nouvelleFin || null } }))
+    agir(() => api('membres', chemin, { methode: 'PATCH', corps: { debut: nouveauDebut, fin: nouvelleFin || null, ...(exemption !== undefined ? { exemption: motif } : {}) } }))
   }
 
   return (
@@ -66,12 +70,16 @@ export function CorrigerPeriode({ chemin, libelle, debut, fin, seul, apres }: {
 
       <Dialog open={ouvert} onClose={() => setOuvert(false)} fullWidth maxWidth="xs">
         <form onSubmit={enregistrer}>
-          <DialogTitle>Corriger</DialogTitle>
+          <DialogTitle>{exemption !== undefined ? 'Corriger l\'adhésion' : 'Corriger'}</DialogTitle>
           <DialogContent>
             <Stack spacing={2.2} sx={{ pt: 1 }}>
               <Typography>{libelle}</Typography>
               <ChampDate libelle="Début" valeur={nouveauDebut} changer={setNouveauDebut} requis />
               <ChampDate libelle="Fin (incluse, vide = en cours)" valeur={nouvelleFin} changer={setNouvelleFin} />
+              {exemption !== undefined && (
+                <TextField label="Exemption de cotisation (motif)" value={motif} onChange={(e) => setMotif(e.target.value)}
+                  placeholder="Membre du bureau (statuts)" helperText="Vide = cotisation normale. Relancez ensuite « Calculer les cotisations »." />
+              )}
               {confirmer && (
                 <Alert severity="warning" action={
                   <Button color="inherit" size="small" onClick={() => agir(() => api('membres', chemin, { methode: 'DELETE' }))}>Supprimer</Button>
