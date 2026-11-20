@@ -122,6 +122,17 @@ export async function api<T>(app: Application, chemin: string, options: { method
   return corps as T
 }
 
+/**
+ * Associations auxquelles se limite la gestion de l'utilisateur, quand c'est elle qui borne ce
+ * qu'il voit (pas d'admin, de gestion de toutes les associations ni d'accueil) ; null sinon.
+ */
+export function gestionLimitee(): string[] | null {
+  const droits = contenu?.droits ?? []
+  if (droits.some((d) => d === 'membres:admin' || d === 'membres:gestion' || d.startsWith('membres:accueil'))) return null
+  const assos = droits.filter((d) => d.startsWith('membres:gestion:')).map((d) => d.split(':')[2])
+  return assos.length ? assos : null
+}
+
 /** L'utilisateur connecté a-t-il ce droit (« application:role », périmètre éventuel compris) ? */
 export function aLeDroit(application: string, ...roles: string[]): boolean {
   return (contenu?.droits ?? []).some((d) => {

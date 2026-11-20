@@ -17,6 +17,7 @@ export interface Personne {
   adresse?: Adresse | null
   telephone?: string | null
   email?: string | null
+  detail?: boolean  // présent quand les coordonnées sont visibles (et la fiche modifiable)
 }
 
 export interface Organisation {

@@ -55,7 +55,7 @@ export function Fiche() {
   const categorie = (iri: string) => ref?.categories.find((c) => c.code === idDe(iri))
   const adhesionDe = (iri: string) => adhesions.find((a) => a.id === idDe(iri))
   // Coordonnées : selon les droits (l'API omet les champs vides, leur absence ne dit rien).
-  const detail = aLeDroit('membres', 'admin', 'gestion')
+  const detail = !!personne.detail  // coordonnées visibles : l'API ne les envoie qu'à qui y a droit
   const gestion = aLeDroit('membres', 'admin', 'gestion')
   const a = personne.adresse
 
@@ -68,7 +68,7 @@ export function Fiche() {
       </Stack>
 
       <Stack direction="row" spacing={1}>
-        <Button variant="outlined" startIcon={<Edit />} component={LienRouteur} to={`/personnes/${id}/modifier`}>Modifier</Button>
+        {detail && <Button variant="outlined" startIcon={<Edit />} component={LienRouteur} to={`/personnes/${id}/modifier`}>Modifier</Button>}
         <Button variant="contained" startIcon={<Add />} component={LienRouteur} to={`/personnes/${id}/adhesion`}>Nouvelle adhésion</Button>
       </Stack>
 

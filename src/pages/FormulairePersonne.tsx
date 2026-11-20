@@ -4,11 +4,13 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Stack from '@mui/material/Stack'
+import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { aLeDroit, api, ErreurApi } from '../api/client'
+import { api, ErreurApi, gestionLimitee } from '../api/client'
+import { useReference } from '../api/reference'
 import { aujourdhuiIso, type Personne } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
 
@@ -28,14 +30,23 @@ export function FormulairePersonne() {
   const [params] = useSearchParams()
   const naviguer = useNavigate()
   const [champs, setChamps] = useState<Champs>({ ...vide, nom: params.get('nom') ?? '' })
-  // L'accueil ne voit ni ne modifie les coordonnées existantes ; à la création, il peut les saisir.
-  const detail = !id || aLeDroit('membres', 'admin', 'gestion')
+  // Coordonnées : toujours à la création ; en modification, seulement si l'API les montre
+  // (sinon on les effacerait en enregistrant des champs vides).
+  const [detailVisible, setDetailVisible] = useState(false)
+  const detail = !id || detailVisible
+  // Gestion limitée à une association : la fiche n'est visible qu'avec une adhésion à celle-ci,
+  // créée dans la foulée.
+  const limitee = id ? null : gestionLimitee()
+  const ref = useReference()
+  const [association, setAssociation] = useState('')
+  const [categorie, setCategorie] = useState('')
   const [erreur, setErreur] = useState<ErreurApi | null>(null)
   const [envoi, setEnvoi] = useState(false)
 
   useEffect(() => {
     if (!id) return
     api<Personne>('membres', `/api/personnes/${id}`).then((p) => {
+      setDetailVisible(!!p.detail)
       setChamps({
         nom: p.nom, prenom: p.prenom ?? '', surnom: p.surnom ?? '', dateNaissance: p.dateNaissance?.slice(0, 10) ?? '',
         telephone: p.telephone ?? '', email: p.email ?? '', commentaire: p.commentaire ?? '',
@@ -43,6 +54,11 @@ export function FormulairePersonne() {
       })
     }).catch((e) => setErreur(e))
   }, [id])
+
+  const associationsLimitees = (ref?.organisations ?? []).filter((o) => limitee?.includes(o.id))
+  const associationChoisie = association || associationsLimitees[0]?.id || ''
+  const voletChoisi = associationsLimitees.find((o) => o.id === associationChoisie)?.volet
+  const categories = (ref?.categories ?? []).filter((c) => c.volet === voletChoisi && c.code !== 'association')
 
   const champ = (nom: keyof Champs, cleErreur: string = nom) => ({
     value: champs[nom],
@@ -67,6 +83,12 @@ export function FormulairePersonne() {
     }
     try {
       const p = await api<Personne>('membres', id ? `/api/personnes/${id}` : '/api/personnes', { methode: id ? 'PATCH' : 'POST', corps })
+      if (limitee) {
+        await api('membres', '/api/adhesions', { methode: 'POST', corps: {
+          membre: `/api/personnes/${p.id}`, association: `/api/organisations/${associationChoisie}`,
+          categorie: `/api/categories/${categorie}`, debut: aujourdhuiIso(),
+        } })
+      }
       naviguer(`/personnes/${p.id}`)
     } catch (err) {
       setErreur(err as ErreurApi)
@@ -102,6 +124,17 @@ export function FormulairePersonne() {
                 </Box>
                 <TextField label="Commentaire" multiline minRows={2} {...champ('commentaire')} />
               </>
+            )}
+            {limitee && (
+              <Box sx={grille}>
+                <TextField select label="Adhésion à" value={associationChoisie} onChange={(e) => { setAssociation(e.target.value); setCategorie('') }} required>
+                  {associationsLimitees.map((o) => <MenuItem key={o.id} value={o.id}>{o.nom}</MenuItem>)}
+                </TextField>
+                <TextField select label="Niveau" value={categorie} onChange={(e) => setCategorie(e.target.value)} required
+                  helperText="À partir d'aujourd'hui ; modifiable ensuite sur la fiche.">
+                  {categories.map((c) => <MenuItem key={c.code} value={c.code}>{c.libelle}</MenuItem>)}
+                </TextField>
+              </Box>
             )}
             {erreur && !Object.keys(erreur.details).length && <Alert severity="error">{erreur.message}</Alert>}
             <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
