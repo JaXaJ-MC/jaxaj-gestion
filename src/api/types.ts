@@ -142,6 +142,7 @@ export interface LigneListe {
   mois: { statut: StatutMois, du: string | null, regle: string | null, reste: string | null }
   derniere_cotisation: string | null
   roles: { role: string, organisation: string }[]
+  adhesions: { association: string, categorie: string }[]  // toutes celles du mois
 }
 
 /** « 60.00 » → « 60 € », « 7.50 » → « 7,50 € » */

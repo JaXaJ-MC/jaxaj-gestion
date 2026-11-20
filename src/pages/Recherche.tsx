@@ -47,6 +47,8 @@ export function Recherche() {
   const [params, setParams] = useSearchParams()
   const [saisie, setSaisie] = useState(params.get('q') ?? '')
   const [filtre, setFiltre] = useState<Filtre>((params.get('filtre') as Filtre) || 'tous')
+  const [association, setAssociation] = useState(params.get('association') ?? '')
+  const [niveau, setNiveau] = useState(params.get('niveau') ?? '')
   const [lignes, setLignes] = useState<LigneListe[] | null>(null)
   const [mois, setMois] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
@@ -63,19 +65,26 @@ export function Recherche() {
 
   useEffect(() => {
     const q = saisie.trim()
-    setParams({ ...(q ? { q } : {}), ...(filtre !== 'tous' ? { filtre } : {}) }, { replace: true })
-  }, [saisie, filtre, setParams])
+    setParams({ ...(q ? { q } : {}), ...(filtre !== 'tous' ? { filtre } : {}),
+      ...(association ? { association } : {}), ...(niveau ? { niveau } : {}) }, { replace: true })
+  }, [saisie, filtre, association, niveau, setParams])
 
   const mots = useMemo(() => termes(saisie), [saisie])
+  // Association et niveau : parmi toutes les adhésions du mois de la personne, pas seulement la principale.
+  const retenue = (l: LigneListe) => (association || niveau)
+    ? l.adhesions.find((a) => (!association || a.association === association) && (!niveau || a.categorie === niveau))
+    : null
+  const filtrees = useMemo(() => (lignes ?? []).filter((l) => !(association || niveau) || retenue(l)),
+    [lignes, association, niveau])  // eslint-disable-line react-hooks/exhaustive-deps
   const comptes = useMemo(() => ({
-    tous: lignes?.length ?? 0,
-    en_cours: lignes?.filter((l) => l.adhesion).length ?? 0,
-    a_payer: lignes?.filter(aPayer).length ?? 0,
-  }), [lignes])
-  const visibles = useMemo(() => (lignes ?? []).filter((l) =>
+    tous: filtrees.length,
+    en_cours: filtrees.filter((l) => l.adhesion).length,
+    a_payer: filtrees.filter(aPayer).length,
+  }), [filtrees])
+  const visibles = useMemo(() => filtrees.filter((l) =>
     (filtre === 'tous' || (filtre === 'en_cours' ? !!l.adhesion : aPayer(l)))
     && correspond([l.nom, l.prenom, l.surnom].filter(Boolean).join(' '), mots),
-  ), [lignes, filtre, mots])
+  ), [filtrees, filtre, mots])
 
   async function encaisser(ligne: LigneListe, moyen: string) {
     setMenu(null)
@@ -94,6 +103,14 @@ export function Recherche() {
   const nomMois = mois ? new Date(`${mois}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : ''
   const libelleCategorie = (code: string | null) => ref?.categories.find((c) => c.code === code)?.libelle ?? code
   const organisation = (id: string | null) => ref?.organisations.find((o) => o.id === id)
+  const associations = ref?.organisations.filter((o) => o.genre === 'association_jaxaj') ?? []
+  const volet = associations.find((o) => o.id === association)?.volet
+  const niveaux = (ref?.categories ?? []).filter((c) => !volet || c.volet === volet)
+  const choisirAssociation = (id: string) => {
+    setAssociation(id)
+    const v = associations.find((o) => o.id === id)?.volet
+    if (v && ref?.categories.find((c) => c.code === niveau)?.volet !== v) setNiveau('')
+  }
   const filtres: [Filtre, string][] = [['tous', 'Tous'], ['en_cours', 'Adhésion en cours'], ['a_payer', `À payer en ${nomMois.split(' ')[0] || 'ce mois'}`]]
 
   return (
@@ -121,6 +138,21 @@ export function Recherche() {
             <Chip key={f} label={`${libelle} · ${comptes[f]}`} onClick={() => setFiltre(f)}
               color={filtre === f ? 'primary' : 'default'} variant={filtre === f ? 'filled' : 'outlined'} />
           ))}
+        </Stack>
+        <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: 'center' }}>
+          <TextField select size="small" label="Association" value={association} onChange={(e) => choisirAssociation(e.target.value)}
+            sx={{ flex: 1, maxWidth: 240 }} slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
+            <MenuItem value="">Toutes</MenuItem>
+            {associations.map((o) => <MenuItem key={o.id} value={o.id}>{o.nom}</MenuItem>)}
+          </TextField>
+          <TextField select size="small" label="Niveau" value={niveau} onChange={(e) => setNiveau(e.target.value)}
+            sx={{ flex: 1, maxWidth: 240 }} slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
+            <MenuItem value="">Tous</MenuItem>
+            {niveaux.map((c) => <MenuItem key={c.code} value={c.code}>{c.libelle}</MenuItem>)}
+          </TextField>
+          {(association || niveau) && (
+            <IconButton size="small" aria-label="Retirer les filtres association et niveau" onClick={() => { setAssociation(''); setNiveau('') }}><Clear fontSize="small" /></IconButton>
+          )}
         </Stack>
       </Box>
 
@@ -158,7 +190,9 @@ export function Recherche() {
                       </Stack>
                     )}
                     <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', flexWrap: 'wrap', color: 'text.secondary', fontSize: '.84rem' }}>
-                      {l.adhesion
+                      {retenue(l)
+                        ? <><EtiquetteAssociation organisation={organisation(retenue(l)!.association)} /><span>{libelleCategorie(retenue(l)!.categorie)}</span></>
+                        : l.adhesion
                         ? <><EtiquetteAssociation organisation={organisation(l.association)} /><span>{libelleCategorie(l.categorie)}</span></>
                         : <span>{l.derniere_cotisation ? `Dernière cotisation : ${dateFr(l.derniere_cotisation).slice(3)}` : 'Aucune cotisation'}</span>}
                     </Stack>
