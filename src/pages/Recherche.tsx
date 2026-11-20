@@ -1,13 +1,13 @@
+import Add from '@mui/icons-material/Add'
 import Check from '@mui/icons-material/Check'
-import Clear from '@mui/icons-material/Clear'
 import Search from '@mui/icons-material/Search'
 import Alert from '@mui/material/Alert'
+import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
-import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
@@ -25,9 +25,8 @@ import { useReference } from '../api/reference'
 import { dateFr, euros, ROLES, type LigneListe } from '../api/types'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 import { Surligne } from '../composants/Surligne'
+import { depuisAdresse, ETATS, filtrer, TYPES, versAdresse, type Jeton } from '../filtres'
 import { correspond, termes } from '../texte'
-
-type Filtre = 'tous' | 'en_cours' | 'a_payer'
 
 const MOYENS = [
   { code: 'especes', libelle: 'Espèces' },
@@ -39,16 +38,15 @@ const MOYENS = [
 const aPayer = (l: LigneListe) => l.mois.statut === 'a_payer' || l.mois.statut === 'partiel'
 
 /**
- * Écran principal : la liste complète des personnes avec l'état du mois. La recherche filtre
- * la liste sur place et surligne ce qu'elle trouve ; « Payé ce mois-ci » encaisse le mois.
+ * Écran principal : la liste complète des personnes avec l'état du mois. La barre de recherche
+ * filtre sur place : le texte cherche dans les noms (surligné), les pastilles filtrent par état,
+ * association, niveau ou rôle (voir filtres.ts). « Payé ce mois-ci » encaisse le mois.
  */
 export function Recherche() {
   const ref = useReference()
   const [params, setParams] = useSearchParams()
   const [saisie, setSaisie] = useState(params.get('q') ?? '')
-  const [filtre, setFiltre] = useState<Filtre>((params.get('filtre') as Filtre) || 'tous')
-  const [association, setAssociation] = useState(params.get('association') ?? '')
-  const [niveau, setNiveau] = useState(params.get('niveau') ?? '')
+  const [brut, setBrut] = useState(params.get('f') ?? '')  // pastilles, dans l'adresse : « niveau:full_patch,… »
   const [lignes, setLignes] = useState<LigneListe[] | null>(null)
   const [mois, setMois] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
@@ -65,26 +63,29 @@ export function Recherche() {
 
   useEffect(() => {
     const q = saisie.trim()
-    setParams({ ...(q ? { q } : {}), ...(filtre !== 'tous' ? { filtre } : {}),
-      ...(association ? { association } : {}), ...(niveau ? { niveau } : {}) }, { replace: true })
-  }, [saisie, filtre, association, niveau, setParams])
+    setParams({ ...(q ? { q } : {}), ...(brut ? { f: brut } : {}) }, { replace: true })
+  }, [saisie, brut, setParams])
 
+  // Pastilles proposées : états, associations JaXaJ, niveaux, rôles.
+  const options = useMemo<Jeton[]>(() => [
+    ...Object.entries(ETATS).map(([valeur, libelle]) => ({ type: 'etat' as const, valeur, libelle })),
+    ...(ref?.organisations ?? []).filter((o) => o.genre === 'association_jaxaj').map((o) => ({ type: 'association' as const, valeur: o.id, libelle: o.nom })),
+    ...(ref?.categories ?? []).map((c) => ({ type: 'niveau' as const, valeur: c.code, libelle: c.libelle })),
+    ...Object.entries(ROLES).map(([valeur, libelle]) => ({ type: 'role' as const, valeur, libelle })),
+  ], [ref])
+  const jetons = useMemo(() => depuisAdresse(brut, options), [brut, options])
   const mots = useMemo(() => termes(saisie), [saisie])
-  // Association et niveau : parmi toutes les adhésions du mois de la personne, pas seulement la principale.
-  const retenue = (l: LigneListe) => (association || niveau)
-    ? l.adhesions.find((a) => (!association || a.association === association) && (!niveau || a.categorie === niveau))
-    : null
-  const filtrees = useMemo(() => (lignes ?? []).filter((l) => !(association || niveau) || retenue(l)),
-    [lignes, association, niveau])  // eslint-disable-line react-hooks/exhaustive-deps
-  const comptes = useMemo(() => ({
-    tous: filtrees.length,
-    en_cours: filtrees.filter((l) => l.adhesion).length,
-    a_payer: filtrees.filter(aPayer).length,
-  }), [filtrees])
-  const visibles = useMemo(() => filtrees.filter((l) =>
-    (filtre === 'tous' || (filtre === 'en_cours' ? !!l.adhesion : aPayer(l)))
-    && correspond([l.nom, l.prenom, l.surnom].filter(Boolean).join(' '), mots),
-  ), [filtrees, filtre, mots])
+  const resultats = useMemo(() => (lignes ?? []).map((l) => ({ l, ...filtrer(l, jetons) })).filter((r) => r.ok), [lignes, jetons])
+  const visibles = useMemo(() => resultats.filter(({ l }) => correspond([l.nom, l.prenom, l.surnom].filter(Boolean).join(' '), mots)),
+    [resultats, mots])
+  const ajouter = (j: Jeton) => setBrut(versAdresse([...jetons, j]))
+  // Raccourcis : les états qu'on n'a pas encore posés, avec ce qu'ils donneraient.
+  const raccourcis = (['en_cours', 'a_payer'] as const)
+    .filter((e) => !jetons.some((j) => j.type === 'etat' && j.valeur === e))
+    .map((e) => {
+      const j = options.find((o) => o.type === 'etat' && o.valeur === e)!
+      return { j, n: resultats.filter(({ l }) => filtrer(l, [j]).ok).length }
+    })
 
   async function encaisser(ligne: LigneListe, moyen: string) {
     setMenu(null)
@@ -103,57 +104,54 @@ export function Recherche() {
   const nomMois = mois ? new Date(`${mois}-01T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : ''
   const libelleCategorie = (code: string | null) => ref?.categories.find((c) => c.code === code)?.libelle ?? code
   const organisation = (id: string | null) => ref?.organisations.find((o) => o.id === id)
-  const associations = ref?.organisations.filter((o) => o.genre === 'association_jaxaj') ?? []
-  const volet = associations.find((o) => o.id === association)?.volet
-  const niveaux = (ref?.categories ?? []).filter((c) => !volet || c.volet === volet)
-  const choisirAssociation = (id: string) => {
-    setAssociation(id)
-    const v = associations.find((o) => o.id === id)?.volet
-    if (v && ref?.categories.find((c) => c.code === niveau)?.volet !== v) setNiveau('')
-  }
-  const filtres: [Filtre, string][] = [['tous', 'Tous'], ['en_cours', 'Adhésion en cours'], ['a_payer', `À payer en ${nomMois.split(' ')[0] || 'ce mois'}`]]
-
   return (
     <Box>
       <Box sx={{ position: 'sticky', top: { xs: 59, sm: 67 }, zIndex: 2, bgcolor: 'background.default', pb: 1.5, pt: 0.5, mt: -0.5 }}>
-        <TextField
-          placeholder="Filtrer : nom, prénom ou surnom…"
-          value={saisie}
-          onChange={(e) => setSaisie(e.target.value)}
-          slotProps={{
-            htmlInput: { 'aria-label': 'Filtrer la liste' },
-            input: {
-              startAdornment: <InputAdornment position="start"><Search /></InputAdornment>,
-              endAdornment: saisie && (
-                <InputAdornment position="end">
-                  <IconButton aria-label="Effacer" onClick={() => setSaisie('')} edge="end"><Clear /></IconButton>
-                </InputAdornment>
-              ),
-              sx: { fontSize: '1.1rem', bgcolor: 'background.paper' },
-            },
+        <Autocomplete
+          multiple
+          freeSolo
+          openOnFocus
+          clearOnBlur={false}
+          options={options}
+          value={jetons}
+          inputValue={saisie}
+          groupBy={(o) => TYPES[(o as Jeton).type]}
+          getOptionLabel={(o) => (typeof o === 'string' ? o : o.libelle)}
+          filterOptions={(opts, { inputValue }) => {
+            const m = termes(inputValue)
+            return opts.filter((o) => !jetons.some((j) => j.type === o.type && j.valeur === o.valeur)
+              && correspond(`${o.libelle} ${TYPES[o.type]}`, m))
           }}
-        />
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap', rowGap: 1 }}>
-          {filtres.map(([f, libelle]) => (
-            <Chip key={f} label={`${libelle} · ${comptes[f]}`} onClick={() => setFiltre(f)}
-              color={filtre === f ? 'primary' : 'default'} variant={filtre === f ? 'filled' : 'outlined'} />
-          ))}
-        </Stack>
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: 'center' }}>
-          <TextField select size="small" label="Association" value={association} onChange={(e) => choisirAssociation(e.target.value)}
-            sx={{ flex: 1, maxWidth: 240 }} slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
-            <MenuItem value="">Toutes</MenuItem>
-            {associations.map((o) => <MenuItem key={o.id} value={o.id}>{o.nom}</MenuItem>)}
-          </TextField>
-          <TextField select size="small" label="Niveau" value={niveau} onChange={(e) => setNiveau(e.target.value)}
-            sx={{ flex: 1, maxWidth: 240 }} slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
-            <MenuItem value="">Tous</MenuItem>
-            {niveaux.map((c) => <MenuItem key={c.code} value={c.code}>{c.libelle}</MenuItem>)}
-          </TextField>
-          {(association || niveau) && (
-            <IconButton size="small" aria-label="Retirer les filtres association et niveau" onClick={() => { setAssociation(''); setNiveau('') }}><Clear fontSize="small" /></IconButton>
+          onChange={(_, valeur, raison) => {
+            if (raison === 'createOption') return  // Entrée sur du texte : il reste une recherche de nom
+            setBrut(versAdresse(valeur.filter((v): v is Jeton => typeof v !== 'string')))
+            if (raison === 'selectOption') setSaisie('')  // le texte a servi à trouver la pastille
+          }}
+          onInputChange={(_, valeur, raison) => { if (raison !== 'reset') setSaisie(valeur) }}
+          renderValue={(valeur, getItemProps) => valeur.map((j, index) => {
+            const { key, ...props } = getItemProps({ index })
+            const jeton = j as Jeton
+            return <Chip key={key} size="small" {...props} label={jeton.libelle}
+              color={jeton.type === 'etat' ? 'primary' : jeton.type === 'association' ? 'default' : 'secondary'}
+              variant={jeton.type === 'association' ? 'filled' : 'outlined'} />
+          })}
+          renderInput={(p) => (
+            <TextField {...p} placeholder={jetons.length ? 'Nom, ou autre filtre…' : 'Nom, prénom, surnom, ou filtre : Béarn, full patch, à payer…'}
+              slotProps={{
+                ...p.slotProps,
+                htmlInput: { ...p.slotProps.htmlInput, 'aria-label': 'Rechercher et filtrer la liste' },
+                input: { ...p.slotProps.input, startAdornment: <><InputAdornment position="start"><Search /></InputAdornment>{p.slotProps.input.startAdornment}</>,
+                  sx: { fontSize: '1.1rem', bgcolor: 'background.paper' } },
+              }} />
           )}
-        </Stack>
+        />
+        {lignes && raccourcis.length > 0 && (
+          <Stack direction="row" spacing={1} sx={{ mt: 1.2, flexWrap: 'wrap', rowGap: 1, alignItems: 'center' }}>
+            {raccourcis.map(({ j, n }) => (
+              <Chip key={j.valeur} size="small" variant="outlined" icon={<Add />} label={`${j.libelle} · ${n}`} onClick={() => ajouter(j)} />
+            ))}
+          </Stack>
+        )}
       </Box>
 
       {erreur && <Alert severity="error">{erreur}</Alert>}
@@ -173,7 +171,7 @@ export function Recherche() {
           </Typography>
           <Card>
             <List disablePadding>
-              {visibles.map((l, i) => (
+              {visibles.map(({ l, adhesion: retenue }, i) => (
                 <ListItem key={l.id} disablePadding divider={i < visibles.length - 1}
                   sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' }, contentVisibility: 'auto', containIntrinsicSize: 'auto 64px' }}>
                   <ListItemButton component={Link} to={`/personnes/${l.id}`} sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 1.1, minWidth: 0, width: { xs: '100%', sm: 'auto' } }}>
@@ -190,8 +188,8 @@ export function Recherche() {
                       </Stack>
                     )}
                     <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', flexWrap: 'wrap', color: 'text.secondary', fontSize: '.84rem' }}>
-                      {retenue(l)
-                        ? <><EtiquetteAssociation organisation={organisation(retenue(l)!.association)} /><span>{libelleCategorie(retenue(l)!.categorie)}</span></>
+                      {retenue
+                        ? <><EtiquetteAssociation organisation={organisation(retenue.association)} /><span>{libelleCategorie(retenue.categorie)}</span></>
                         : l.adhesion
                         ? <><EtiquetteAssociation organisation={organisation(l.association)} /><span>{libelleCategorie(l.categorie)}</span></>
                         : <span>{l.derniere_cotisation ? `Dernière cotisation : ${dateFr(l.derniere_cotisation).slice(3)}` : 'Aucune cotisation'}</span>}
