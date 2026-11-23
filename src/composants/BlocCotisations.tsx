@@ -42,7 +42,13 @@ export function BlocCotisations({ cotisations, associationDe }: {
   associationDe: (adhesion: string) => Organisation | undefined
 }) {
   const [ouvertes, setOuvertes] = useState<Set<string>>(() => new Set([String(new Date().getFullYear())]))
-  const annees = [...new Set(cotisations.map((c) => c.debut.slice(0, 4)))].sort().reverse()
+  // Une ligne sur plusieurs années (exemption sur toute une adhésion) figure dans chacune.
+  const anneesDe = (c: CotisationEtat) => {
+    const [de, a] = [Number(c.debut.slice(0, 4)), Number(c.fin.slice(0, 4))]
+    return Array.from({ length: a - de + 1 }, (_, i) => String(de + i))
+  }
+  const plurianuelle = (c: CotisationEtat) => c.debut.slice(0, 4) !== c.fin.slice(0, 4)
+  const annees = [...new Set(cotisations.flatMap(anneesDe))].sort().reverse()
   const basculer = (a: string) => setOuvertes((s) => { const n = new Set(s); if (n.has(a)) n.delete(a); else n.add(a); return n })
 
   const du = cotisations.reduce((t, c) => t + (c.gratuite ? 0 : Number(c.montant)), 0)
@@ -60,10 +66,14 @@ export function BlocCotisations({ cotisations, associationDe }: {
         <TableBody>
           {annees.map((annee) => {
             // Le plus récent d'abord ; pour une même période, la ligne payante avant la gratuite.
-            const lignes = cotisations.filter((c) => c.debut.startsWith(annee))
-              .sort((a, b) => b.debut.localeCompare(a.debut) || Number(a.gratuite) - Number(b.gratuite))
-            const duAnnee = lignes.reduce((t, c) => t + (c.gratuite ? 0 : Number(c.montant)), 0)
-            const regleAnnee = lignes.reduce((t, c) => t + Math.min(Number(c.regle), Number(c.montant)), 0)
+            // Les lignes sur plusieurs années en tête, puis le plus récent d'abord ; pour une même
+            // période, la payante avant la gratuite. Le montant d'une ligne pluriannuelle ne compte
+            // que dans son année de début.
+            const lignes = cotisations.filter((c) => anneesDe(c).includes(annee))
+              .sort((a, b) => Number(plurianuelle(b)) - Number(plurianuelle(a)) || b.debut.localeCompare(a.debut) || Number(a.gratuite) - Number(b.gratuite))
+            const comptees = lignes.filter((c) => c.debut.startsWith(annee))
+            const duAnnee = comptees.reduce((t, c) => t + (c.gratuite ? 0 : Number(c.montant)), 0)
+            const regleAnnee = comptees.reduce((t, c) => t + Math.min(Number(c.regle), Number(c.montant)), 0)
             const associations = [...new Map(lignes.map((c) => associationDe(c.adhesion)).filter((o) => !!o).map((o) => [o!.id, o!])).values()]
             const ouverte = ouvertes.has(annee)
             return (
