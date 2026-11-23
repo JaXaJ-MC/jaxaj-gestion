@@ -57,7 +57,9 @@ export function BlocCotisations({ cotisations, associationDe }: {
       <Table size="small">
         <TableBody>
           {annees.map((annee) => {
+            // Le plus récent d'abord ; pour une même période, la ligne payante avant la gratuite.
             const lignes = cotisations.filter((c) => c.debut.startsWith(annee))
+              .sort((a, b) => b.debut.localeCompare(a.debut) || Number(a.gratuite) - Number(b.gratuite))
             const duAnnee = lignes.reduce((t, c) => t + (c.gratuite ? 0 : Number(c.montant)), 0)
             const regleAnnee = lignes.reduce((t, c) => t + Math.min(Number(c.regle), Number(c.montant)), 0)
             const associations = [...new Map(lignes.map((c) => associationDe(c.adhesion)).filter((o) => !!o).map((o) => [o!.id, o!])).values()]
@@ -81,9 +83,13 @@ export function BlocCotisations({ cotisations, associationDe }: {
                 </TableRow>
                 {ouverte && lignes.map((c) => (
                   <TableRow key={c.id} sx={{ '& td': { color: 'text.secondary' } }}>
-                    <TableCell sx={{ pl: 3.5, whiteSpace: 'nowrap' }}>{periodeFr(c.debut, c.fin)}</TableCell>
-                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                      {c.historique && <Typography variant="caption" color="text.disabled">historique reconstitué</Typography>}
+                    <TableCell sx={{ pl: { xs: 1.5, sm: 3.5 }, whiteSpace: 'nowrap' }}>{periodeFr(c.debut, c.fin)}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.3 }}>
+                        <EtiquetteAssociation organisation={associationDe(c.adhesion)} />
+                        {c.gratuite && c.motifGratuite && <Typography variant="caption" color="text.disabled">{c.motifGratuite}</Typography>}
+                        {c.historique && <Typography variant="caption" color="text.disabled" sx={{ display: { xs: 'none', sm: 'inline' } }}>historique reconstitué</Typography>}
+                      </Stack>
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }} title={c.motifGratuite ?? ''}>{c.gratuite ? '—' : euros(c.montant)}</TableCell>
                     <TableCell align="right" sx={{ pr: 0 }}><Etat du={Number(c.montant)} regle={Number(c.regle)} gratuite={c.gratuite} /></TableCell>
