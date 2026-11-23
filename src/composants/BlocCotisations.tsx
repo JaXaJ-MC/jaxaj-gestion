@@ -14,12 +14,14 @@ import { EtiquetteAssociation } from './Etiquette'
 
 const montant = (n: number) => euros(n.toFixed(2))
 
-/** « 12 mois · 1 année » : les cotisations annuelles (01/01 – 31/12) à part des mensuelles. */
+/** « 12 mois · 1 année · 1 période » : mensuelles, annuelles (01/01 – 31/12), et le reste (exemption sur toute une adhésion). */
 function decompte(lignes: CotisationEtat[]) {
-  const annee = (c: CotisationEtat) => c.debut.slice(5, 10) === '01-01' && c.fin.slice(5, 10) === '12-31'
-  const annees = lignes.filter(annee).length
-  const autres = lignes.length - annees
-  return [autres && `${autres} mois`, annees && (annees > 1 ? `${annees} années` : lignes.length === 1 ? 'année' : '1 année')]
+  const mois = lignes.filter((c) => c.debut.slice(0, 7) === c.fin.slice(0, 7)).length
+  const annees = lignes.filter((c) => c.debut.slice(0, 4) === c.fin.slice(0, 4) && c.debut.slice(5, 10) === '01-01' && c.fin.slice(5, 10) === '12-31').length
+  const autres = lignes.length - mois - annees
+  const pluriel = (n: number, un: string, plusieurs: string) => (n > 1 ? `${n} ${plusieurs}` : `1 ${un}`)
+  if (lignes.length === 1) return annees ? 'année' : mois ? 'mois' : 'période'
+  return [mois && `${mois} mois`, annees && pluriel(annees, 'année', 'années'), autres && pluriel(autres, 'période', 'périodes')]
     .filter(Boolean).join(' · ')
 }
 
