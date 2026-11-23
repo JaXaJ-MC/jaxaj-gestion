@@ -14,6 +14,15 @@ import { EtiquetteAssociation } from './Etiquette'
 
 const montant = (n: number) => euros(n.toFixed(2))
 
+/** « 12 mois · 1 année » : les cotisations annuelles (01/01 – 31/12) à part des mensuelles. */
+function decompte(lignes: CotisationEtat[]) {
+  const annee = (c: CotisationEtat) => c.debut.slice(5, 10) === '01-01' && c.fin.slice(5, 10) === '12-31'
+  const annees = lignes.filter(annee).length
+  const autres = lignes.length - annees
+  return [autres && `${autres} mois`, annees && (annees > 1 ? `${annees} années` : lignes.length === 1 ? 'année' : '1 année')]
+    .filter(Boolean).join(' · ')
+}
+
 function Etat({ du, regle, gratuite }: { du: number, regle: number, gratuite?: boolean }) {
   if (gratuite) return <Chip size="small" variant="outlined" label="gratuite" />
   const reste = du - regle
@@ -60,7 +69,7 @@ export function BlocCotisations({ cotisations, associationDe }: {
                     <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                       {ouverte ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}{annee}
                       <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                        ({lignes.length === 1 && lignes[0].debut.slice(5, 10) === '01-01' && lignes[0].fin.slice(5, 10) === '12-31' ? 'année' : `${lignes.length} mois`})
+                        ({decompte(lignes)})
                       </Typography>
                     </Box>
                   </TableCell>
