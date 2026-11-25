@@ -143,6 +143,7 @@ export interface LigneListe {
   mois: { statut: StatutMois, du: string | null, regle: string | null, reste: string | null }
   derniere_cotisation: string | null
   premier_full_patch: string | null  // date du premier passage full patch
+  completude: { manquants: string[], total: number }  // ce qui manque à la fiche
   roles: { role: string, organisation: string }[]
   adhesions: { association: string, categorie: string }[]  // toutes celles du mois
 }

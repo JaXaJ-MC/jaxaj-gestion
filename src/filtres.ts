@@ -26,6 +26,7 @@ export const ETATS: Record<string, string> = {
   a_payer: 'À payer ce mois-ci',
   a_jour: 'À jour ce mois-ci',
   anniversaire_fp: 'Anniversaire full patch ce mois-ci',
+  incomplete: 'Fiche incomplète',
 }
 
 const aPayer = (l: LigneListe) => l.mois.statut === 'a_payer' || l.mois.statut === 'partiel'
@@ -55,6 +56,7 @@ export function filtrer(l: LigneListe, jetons: Jeton[]): { ok: boolean, adhesion
   if (etats.includes('a_payer') && !aPayer(l)) return { ok: false }
   if (etats.includes('a_jour') && l.mois.statut !== 'paye' && l.mois.statut !== 'gratuit') return { ok: false }
   if (etats.includes('anniversaire_fp') && anniversaireFullPatch(l) === null) return { ok: false }
+  if (etats.includes('incomplete') && !l.completude.manquants.length) return { ok: false }
 
   if (roles.length && !l.roles.some((r) => roles.includes(r.role) && (!associations.length || associations.includes(r.organisation)))) {
     return { ok: false }

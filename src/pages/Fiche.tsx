@@ -15,6 +15,7 @@ import { aLeDroit, api } from '../api/client'
 import { useReference } from '../api/reference'
 import { aujourdhuiIso, dateFr, enCoursLe, idDe, nomComplet, telephoneFr, type Acces, type Adhesion, type CotisationEtat, type Personne } from '../api/types'
 import { ActionsAdhesion } from '../composants/ActionsAdhesion'
+import { AnneauCompletude, manquantsFr, pourcentage, type Completude } from '../composants/Completude'
 import { CorrigerPeriode } from '../composants/CorrigerPeriode'
 import { BlocCompte } from '../composants/BlocCompte'
 import { BlocCotisations } from '../composants/BlocCotisations'
@@ -32,6 +33,7 @@ export function Fiche() {
   const [adhesions, setAdhesions] = useState<Adhesion[]>([])
   const [cotisations, setCotisations] = useState<CotisationEtat[]>([])
   const [acces, setAcces] = useState<Acces | null>(null)
+  const [completude, setCompletude] = useState<Completude | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [aujourdhui] = useState(aujourdhuiIso)
 
@@ -41,7 +43,9 @@ export function Fiche() {
       api<Adhesion[]>('membres', `/api/adhesions?membre=${id}&itemsPerPage=200`),
       api<CotisationEtat[]>('membres', `/api/personnes/${id}/cotisations`),
       api<Acces>('membres', `/api/personnes/${id}/acces`),
-    ]).then(([p, a, c, x]) => {
+      api<Completude>('membres', `/api/personnes/${id}/completude`),
+    ]).then(([p, a, c, x, k]) => {
+      setCompletude(k)
       setPersonne(p)
       setAdhesions([...a].sort((u, v) => v.debut.localeCompare(u.debut)))
       setCotisations(c)  // déjà triées, la plus récente d'abord
@@ -68,7 +72,13 @@ export function Fiche() {
         <Typography variant="h1">{nomComplet(personne)}</Typography>
         <Chip size="small" color={acces?.acces ? 'success' : 'default'} variant={acces?.acces ? 'filled' : 'outlined'}
           label={acces?.acces ? 'Accès autorisé aujourd\'hui' : 'Pas d\'accès aujourd\'hui'} />
+        {completude && <AnneauCompletude completude={completude} taille={34} />}
       </Stack>
+      {completude && completude.manquants.length > 0 && (
+        <Typography variant="body2" color="text.secondary">
+          Fiche complète à {pourcentage(completude)} % · manque : {manquantsFr(completude)}.
+        </Typography>
+      )}
 
       <Stack direction="row" spacing={1}>
         {detail && <Button variant="outlined" startIcon={<Edit />} component={LienRouteur} to={`/personnes/${id}/modifier`}>Modifier</Button>}

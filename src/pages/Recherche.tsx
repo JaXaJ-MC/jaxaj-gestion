@@ -24,6 +24,7 @@ import { Link, useSearchParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { useReference } from '../api/reference'
 import { dateFr, euros, ROLES, type LigneListe } from '../api/types'
+import { AnneauCompletude } from '../composants/Completude'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 import { Surligne } from '../composants/Surligne'
 import { anniversaireFullPatch, depuisAdresse, ETATS, filtrer, TYPES, versAdresse, type Jeton } from '../filtres'
@@ -176,10 +177,13 @@ export function Recherche() {
                 <ListItem key={l.id} disablePadding divider={i < visibles.length - 1}
                   sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' }, contentVisibility: 'auto', containIntrinsicSize: 'auto 64px' }}>
                   <ListItemButton component={Link} to={`/personnes/${l.id}`} sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 1.1, minWidth: 0, width: { xs: '100%', sm: 'auto' } }}>
-                    <Typography sx={{ fontWeight: 600 }}>
-                      <Surligne texte={[l.prenom, l.nom].filter(Boolean).join(' ')} mots={mots} />
-                      {l.surnom && <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}> « <Surligne texte={l.surnom} mots={mots} /> »</Box>}
-                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 600 }}>
+                        <Surligne texte={[l.prenom, l.nom].filter(Boolean).join(' ')} mots={mots} />
+                        {l.surnom && <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}> « <Surligne texte={l.surnom} mots={mots} /> »</Box>}
+                      </Typography>
+                      {l.completude.manquants.length > 0 && <AnneauCompletude completude={l.completude} taille={24} />}
+                    </Stack>
                     {anniversaireFullPatch(l) !== null && (
                       <Chip size="small" color="warning" variant="outlined" icon={<Cake />} sx={{ my: 0.4 }}
                         label={`${anniversaireFullPatch(l)} an${anniversaireFullPatch(l)! > 1 ? 's' : ''} de full patch le ${l.premier_full_patch!.slice(8, 10)}/${l.premier_full_patch!.slice(5, 7)}`} />
