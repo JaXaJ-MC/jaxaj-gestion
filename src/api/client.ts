@@ -133,6 +133,13 @@ export function gestionLimitee(): string[] | null {
   return assos.length ? assos : null
 }
 
+/** Peut-il écrire (adhésions, rôles, cotisations) dans cette association ? Admin, gestion de toutes, ou de celle-ci. */
+export function peutGerer(association: string | null | undefined): boolean {
+  const droits = contenu?.droits ?? []
+  return droits.includes('membres:admin') || droits.includes('membres:gestion')
+    || (!!association && droits.includes(`membres:gestion:${association}`))
+}
+
 /** L'utilisateur connecté a-t-il ce droit (« application:role », périmètre éventuel compris) ? */
 export function aLeDroit(application: string, ...roles: string[]): boolean {
   return (contenu?.droits ?? []).some((d) => {

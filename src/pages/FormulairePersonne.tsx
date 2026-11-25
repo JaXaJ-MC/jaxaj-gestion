@@ -5,12 +5,13 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Stack from '@mui/material/Stack'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import Link from '@mui/material/Link'
 import MenuItem from '@mui/material/MenuItem'
 import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link as LienRouteur, useNavigate, useParams, useSearchParams } from 'react-router'
 import { api, ErreurApi, gestionLimitee } from '../api/client'
 import { useReference } from '../api/reference'
 import { aujourdhuiIso, libelleDisparu, TYPES_FICHE, type Personne, type TypeFiche } from '../api/types'
@@ -61,6 +62,19 @@ export function FormulairePersonne() {
   const associationChoisie = association || associationsLimitees[0]?.id || ''
   const voletChoisi = associationsLimitees.find((o) => o.id === associationChoisie)?.volet
   const categories = (ref?.categories ?? []).filter((c) => c.volet === voletChoisi && c.code !== 'association')
+
+  // Création : une fiche porte-t-elle déjà ce nom (et ce prénom) ? Évite les doublons, y compris
+  // avec des fiches que l'utilisateur ne voit pas (autre association).
+  const [homonymes, setHomonymes] = useState<{ total: number, visibles: { id: string, nom: string, prenom: string | null, surnom: string | null }[] } | null>(null)
+  useEffect(() => {
+    if (id) return
+    const minuterie = setTimeout(() => {
+      if (champs.nom.trim().length < 2) { setHomonymes(null); return }
+      api<typeof homonymes>('membres', `/api/homonymes?nom=${encodeURIComponent(champs.nom.trim())}&prenom=${encodeURIComponent(champs.prenom.trim())}`)
+        .then(setHomonymes).catch(() => setHomonymes(null))
+    }, 400)
+    return () => clearTimeout(minuterie)
+  }, [id, champs.nom, champs.prenom])
 
   const champ = (nom: keyof Champs, cleErreur: string = nom) => ({
     value: champs[nom],
@@ -156,6 +170,17 @@ export function FormulairePersonne() {
                   {categories.map((c) => <MenuItem key={c.code} value={c.code}>{c.libelle}</MenuItem>)}
                 </TextField>
               </Box>
+            )}
+            {homonymes && homonymes.total > 0 && (
+              <Alert severity="warning">
+                {homonymes.total === 1 ? 'Une fiche porte déjà ce nom' : `${homonymes.total} fiches portent déjà ce nom`} : vérifiez qu'il ne s'agit pas de la même personne avant d'en créer une autre.
+                {homonymes.visibles.map((h) => (
+                  <Box key={h.id}><Link component={LienRouteur} to={`/personnes/${h.id}`} color="inherit">{[h.prenom, h.nom].filter(Boolean).join(' ')}{h.surnom ? ` « ${h.surnom} »` : ''}</Link></Box>
+                ))}
+                {homonymes.total > homonymes.visibles.length && (
+                  <Box sx={{ mt: 0.5 }}>{homonymes.total - homonymes.visibles.length} hors de votre périmètre : si c'est la même personne, demandez à un administrateur de lui ajouter l'adhésion plutôt que de créer un doublon.</Box>
+                )}
+              </Alert>
             )}
             {erreur && !Object.keys(erreur.details).length && <Alert severity="error">{erreur.message}</Alert>}
             <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>

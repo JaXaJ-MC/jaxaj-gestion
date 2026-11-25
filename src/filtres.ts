@@ -24,8 +24,8 @@ export const TYPES: Record<TypeJeton, string> = {
 
 export const ETATS: Record<string, string> = {
   en_cours: 'Adhésion en cours',
-  a_payer: 'À payer ce mois-ci',
-  a_jour: 'À jour ce mois-ci',
+  a_payer: 'À payer (mois affiché)',
+  a_jour: 'À jour (mois affiché)',
   anniversaire_fp: 'Anniversaire full patch ce mois-ci',
   incomplete: 'Fiche incomplète',
   archives: 'Partis ou dissous',

@@ -1,6 +1,8 @@
 import Add from '@mui/icons-material/Add'
 import Cake from '@mui/icons-material/Cake'
 import Check from '@mui/icons-material/Check'
+import ChevronLeft from '@mui/icons-material/ChevronLeft'
+import ChevronRight from '@mui/icons-material/ChevronRight'
 import Groups from '@mui/icons-material/Groups'
 import MusicNote from '@mui/icons-material/MusicNote'
 import Search from '@mui/icons-material/Search'
@@ -11,6 +13,7 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
+import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
@@ -62,16 +65,25 @@ export function Recherche() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', texte: string } | null>(null)
   const peutEncaisser = aLeDroit('membres', 'admin', 'gestion', 'accueil')
 
+  // Mois affiché : le mois en cours, ou un autre (faire le point d'un mois passé avec le trésorier).
+  const [moisCourant] = useState(() => new Date().toISOString().slice(0, 7))
+  const [moisChoisi, setMoisChoisi] = useState(/^\d{4}-\d{2}$/.test(params.get('mois') ?? '') ? params.get('mois')! : moisCourant)
   useEffect(() => {
-    api<{ mois: string, personnes: LigneListe[] }>('membres', '/api/liste')
+    api<{ mois: string, personnes: LigneListe[] }>('membres', `/api/liste?mois=${moisChoisi}`)
       .then((r) => { setLignes(r.personnes); setMois(r.mois) })
       .catch((e) => setErreur(e.message))
-  }, [])
+  }, [moisChoisi])
+  const decaler = (n: number) => {
+    const [a, m] = moisChoisi.split('-').map(Number)
+    const d = new Date(a, m - 1 + n, 1, 12)
+    setMoisChoisi(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
 
   useEffect(() => {
     const q = saisie.trim()
-    setParams({ ...(q ? { q } : {}), ...(brut ? { f: brut } : {}), ...(tri !== 'auto' ? { tri } : {}) }, { replace: true })
-  }, [saisie, brut, tri, setParams])
+    setParams({ ...(q ? { q } : {}), ...(brut ? { f: brut } : {}), ...(tri !== 'auto' ? { tri } : {}),
+      ...(moisChoisi !== moisCourant ? { mois: moisChoisi } : {}) }, { replace: true })
+  }, [saisie, brut, tri, moisChoisi, moisCourant, setParams])
 
   // Pastilles proposées : états, associations JaXaJ, niveaux, rôles.
   const options = useMemo<Jeton[]>(() => [
@@ -180,8 +192,12 @@ export function Recherche() {
       {visibles.length > 0 && (
         <>
           <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {visibles.length === lignes?.length ? `${visibles.length} personnes` : `${visibles.length} sur ${lignes?.length}`} · {nomMois}
+            <Typography component="div" variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 0.5 }}>
+              {visibles.length === lignes?.length ? `${visibles.length} personnes` : `${visibles.length} sur ${lignes?.length}`} ·
+              <IconButton size="small" aria-label="Mois précédent" onClick={() => decaler(-1)}><ChevronLeft fontSize="small" /></IconButton>
+              <Box component="span" sx={{ color: moisChoisi === moisCourant ? undefined : 'warning.main', fontWeight: moisChoisi === moisCourant ? undefined : 600 }}>{nomMois}</Box>
+              <IconButton size="small" aria-label="Mois suivant" onClick={() => decaler(1)} disabled={moisChoisi >= moisCourant}><ChevronRight fontSize="small" /></IconButton>
+              {moisChoisi !== moisCourant && <Button size="small" onClick={() => setMoisChoisi(moisCourant)}>Revenir au mois en cours</Button>}
             </Typography>
             <TextField select size="small" variant="standard" value={tri} onChange={(e) => setTri(e.target.value as Tri)}
               slotProps={{ htmlInput: { 'aria-label': 'Trier la liste' } }} sx={{ minWidth: 0, '& .MuiInputBase-root': { fontSize: '.875rem' } }}>
@@ -239,7 +255,7 @@ export function Recherche() {
                       {aPayer(l) && peutEncaisser && (
                         <Button variant="contained" size="small" disabled={enCours === l.id}
                           onClick={(e) => setMenu({ ancre: e.currentTarget, ligne: l })}>
-                          Payé ce mois-ci · {euros(l.mois.reste)}
+                          {moisChoisi === moisCourant ? 'Payé ce mois-ci' : `Payé en ${nomMois.split(' ')[0]}`} · {euros(l.mois.reste)}
                         </Button>
                       )}
                     </Box>

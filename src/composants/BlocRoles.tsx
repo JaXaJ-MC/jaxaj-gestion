@@ -11,7 +11,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { aLeDroit, api, ErreurApi } from '../api/client'
+import { aLeDroit, api, ErreurApi, peutGerer } from '../api/client'
 import { aujourdhuiIso, dateFr, enCoursLe, idDe, ROLES, type Organisation, type Role } from '../api/types'
 import { ChampDate } from './ChampDate'
 import { CorrigerPeriode } from './CorrigerPeriode'
@@ -39,8 +39,9 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
   }, [personne])
   useEffect(charger, [charger])
 
-  const jaxaj = organisations.filter((o) => o.genre === 'association_jaxaj')
-  const autres = organisations.filter((o) => o.genre !== 'association_jaxaj')
+  // Seulement les organisations où l'utilisateur peut attribuer un rôle.
+  const jaxaj = organisations.filter((o) => o.genre === 'association_jaxaj' && peutGerer(o.id))
+  const autres = organisations.filter((o) => o.genre !== 'association_jaxaj' && peutGerer(o.id))
 
   async function envoyer(e: FormEvent, action: () => Promise<unknown>) {
     e.preventDefault()
@@ -71,12 +72,12 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
             <Typography variant="body2" color="text.secondary">
               {r.fin ? `du ${dateFr(r.debut)} au ${dateFr(r.fin)}` : `depuis le ${dateFr(r.debut)}`}
             </Typography>
-            {enCours && peutModifier && (
+            {enCours && peutGerer(idDe(r.organisation)) && (
               <Button size="small" color="secondary" sx={{ ml: 'auto !important' }} onClick={() => { setFinPour(r); setFin(aujourdhui); setErreur(null) }}>
                 Fin de mandat
               </Button>
             )}
-            {peutModifier && <CorrigerPeriode chemin={`/api/roles/${r.id}`} debut={r.debut} fin={r.fin} seul={!enCours} apres={charger}
+            {peutGerer(idDe(r.organisation)) && <CorrigerPeriode chemin={`/api/roles/${r.id}`} debut={r.debut} fin={r.fin} seul={!enCours} apres={charger}
               libelle={`${ROLES[r.role] ?? r.role} · ${organisations.find((o) => o.id === idDe(r.organisation))?.nom ?? ''}`} />}
           </LigneHistorique>
         )
