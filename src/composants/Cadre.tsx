@@ -23,16 +23,18 @@ export function Cadre() {
   const naviguer = useNavigate()
   const [menu, setMenu] = useState<HTMLElement | null>(null)
   const admin = utilisateur?.droits.includes('membres:admin') ?? false
+  // Créer une fiche : inscription (ou gestion), ou accueil.
+  const creer = (utilisateur?.droits ?? []).some((d) => /^membres:(admin|gestion|inscription|accueil)(:|$)/.test(d))
   return (
     <>
       <AppBar position="sticky" elevation={0}>
         <Toolbar sx={{ gap: 1 }}>
           <Box component={Link} to="/" sx={{ textDecoration: 'none', mr: 2 }}><Logo /></Box>
           <Button component={NavLink} to="/" end sx={lien}>Liste</Button>
-          <Button component={NavLink} to="/personnes/nouvelle" sx={{ ...lien, display: { xs: 'none', sm: 'inline-flex' } }}>Nouvelle fiche</Button>
-          <IconButton component={NavLink} to="/personnes/nouvelle" aria-label="Nouvelle fiche" sx={{ ...lien, display: { xs: 'inline-flex', sm: 'none' } }}>
+          {creer && <Button component={NavLink} to="/personnes/nouvelle" sx={{ ...lien, display: { xs: 'none', sm: 'inline-flex' } }}>Nouvelle fiche</Button>}
+          {creer && <IconButton component={NavLink} to="/personnes/nouvelle" aria-label="Nouvelle fiche" sx={{ ...lien, display: { xs: 'inline-flex', sm: 'none' } }}>
             <PersonAdd />
-          </IconButton>
+          </IconButton>}
           {admin && <Button component={NavLink} to="/tarifs" sx={{ ...lien, display: { xs: 'none', sm: 'inline-flex' } }}>Tarifs</Button>}
           <Box sx={{ flex: 1 }} />
           <IconButton color="inherit" aria-label="Mon compte" onClick={(e) => setMenu(e.currentTarget)}>

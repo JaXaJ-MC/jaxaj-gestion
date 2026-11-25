@@ -11,7 +11,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { aLeDroit, api, ErreurApi, peutGerer } from '../api/client'
+import { api, ErreurApi, peut } from '../api/client'
 import { aujourdhuiIso, dateFr, enCoursLe, idDe, ROLES, type Organisation, type Role } from '../api/types'
 import { ChampDate } from './ChampDate'
 import { CorrigerPeriode } from './CorrigerPeriode'
@@ -29,7 +29,7 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
   const [finPour, setFinPour] = useState<Role | null>(null)
   const [fin, setFin] = useState(aujourdhuiIso)
   const [erreur, setErreur] = useState<string | null>(null)
-  const peutModifier = aLeDroit('membres', 'admin', 'gestion')
+  const peutModifier = peut('historique')
   const aujourdhui = aujourdhuiIso()
 
   const charger = useCallback(() => {
@@ -40,8 +40,8 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
   useEffect(charger, [charger])
 
   // Seulement les organisations où l'utilisateur peut attribuer un rôle.
-  const jaxaj = organisations.filter((o) => o.genre === 'association_jaxaj' && peutGerer(o.id))
-  const autres = organisations.filter((o) => o.genre !== 'association_jaxaj' && peutGerer(o.id))
+  const jaxaj = organisations.filter((o) => o.genre === 'association_jaxaj' && peut('historique', o.id))
+  const autres = organisations.filter((o) => o.genre !== 'association_jaxaj' && peut('historique', o.id))
 
   async function envoyer(e: FormEvent, action: () => Promise<unknown>) {
     e.preventDefault()
@@ -72,12 +72,12 @@ export function BlocRoles({ personne, organisations }: { personne: string, organ
             <Typography variant="body2" color="text.secondary">
               {r.fin ? `du ${dateFr(r.debut)} au ${dateFr(r.fin)}` : `depuis le ${dateFr(r.debut)}`}
             </Typography>
-            {enCours && peutGerer(idDe(r.organisation)) && (
+            {enCours && peut('historique', idDe(r.organisation)) && (
               <Button size="small" color="secondary" sx={{ ml: 'auto !important' }} onClick={() => { setFinPour(r); setFin(aujourdhui); setErreur(null) }}>
                 Fin de mandat
               </Button>
             )}
-            {peutGerer(idDe(r.organisation)) && <CorrigerPeriode chemin={`/api/roles/${r.id}`} debut={r.debut} fin={r.fin} seul={!enCours} apres={charger}
+            {peut('historique', idDe(r.organisation)) && <CorrigerPeriode chemin={`/api/roles/${r.id}`} debut={r.debut} fin={r.fin} seul={!enCours} apres={charger}
               libelle={`${ROLES[r.role] ?? r.role} · ${organisations.find((o) => o.id === idDe(r.organisation))?.nom ?? ''}`} />}
           </LigneHistorique>
         )

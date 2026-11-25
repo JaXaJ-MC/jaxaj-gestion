@@ -122,22 +122,33 @@ export async function api<T>(app: Application, chemin: string, options: { method
   return corps as T
 }
 
+/** Capacités de la gestion d'une association, données aussi une par une (« membres:gestion » vaut les trois). */
+export type Capacite = 'inscription' | 'historique' | 'tresorerie'
+
 /**
- * Associations auxquelles se limite la gestion de l'utilisateur, quand c'est elle qui borne ce
- * qu'il voit (pas d'admin, de gestion de toutes les associations ni d'accueil) ; null sinon.
+ * A-t-il cette capacité dans cette association (sans association : dans au moins une) ?
+ *   inscription  créer des fiches et de nouvelles adhésions
+ *   historique   corriger adhésions, niveaux, exemptions, rôles ; calculer les cotisations
+ *   tresorerie   encaisser
  */
-export function gestionLimitee(): string[] | null {
-  const droits = contenu?.droits ?? []
-  if (droits.some((d) => d === 'membres:admin' || d === 'membres:gestion' || d.startsWith('membres:accueil'))) return null
-  const assos = droits.filter((d) => d.startsWith('membres:gestion:')).map((d) => d.split(':')[2])
-  return assos.length ? assos : null
+export function peut(capacite: Capacite, association?: string | null): boolean {
+  return (contenu?.droits ?? []).some((d) => {
+    const [a, r, p] = d.split(':')
+    if (a !== 'membres') return false
+    if (r === 'admin') return true
+    return (r === 'gestion' || r === capacite) && (!p || association === undefined || p === association)
+  })
 }
 
-/** Peut-il écrire (adhésions, rôles, cotisations) dans cette association ? Admin, gestion de toutes, ou de celle-ci. */
-export function peutGerer(association: string | null | undefined): boolean {
-  const droits = contenu?.droits ?? []
-  return droits.includes('membres:admin') || droits.includes('membres:gestion')
-    || (!!association && droits.includes(`membres:gestion:${association}`))
+/**
+ * Associations auxquelles se limite ce que voit l'utilisateur (gestion ou capacités avec un
+ * périmètre, sans admin, ni accueil, ni capacité sur toutes) ; null s'il voit tout le monde.
+ */
+export function equipeLimitee(): string[] | null {
+  const droits = (contenu?.droits ?? []).map((d) => d.split(':')).filter(([a]) => a === 'membres')
+  const equipe = droits.filter(([, r]) => ['gestion', 'inscription', 'historique', 'tresorerie'].includes(r))
+  if (droits.some(([, r]) => r === 'admin' || r === 'accueil') || equipe.some(([, , p]) => !p) || !equipe.length) return null
+  return [...new Set(equipe.map(([, , p]) => p))]
 }
 
 /** L'utilisateur connecté a-t-il ce droit (« application:role », périmètre éventuel compris) ? */

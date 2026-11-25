@@ -23,7 +23,10 @@ import { Section } from './Section'
 const ROLES_COMPTE = [
   { droit: 'comptes:admin', libelle: 'Gérer les comptes', perimetre: false },
   { droit: 'membres:admin', libelle: 'Membres : tous les droits', perimetre: false },
-  { droit: 'membres:gestion', libelle: 'Membres : gestion (fiches, adhésions, rôles)', perimetre: true },
+  { droit: 'membres:gestion', libelle: 'Membres : gestion (les trois suivants)', perimetre: true },
+  { droit: 'membres:inscription', libelle: 'Membres : inscription (nouvelles fiches et adhésions)', perimetre: true },
+  { droit: 'membres:historique', libelle: 'Membres : historique (corriger adhésions et rôles, calculer les cotisations)', perimetre: true },
+  { droit: 'membres:tresorerie', libelle: 'Membres : trésorerie (encaisser)', perimetre: true },
   { droit: 'membres:accueil', libelle: 'Membres : accueil des événements', perimetre: true },
 ]
 

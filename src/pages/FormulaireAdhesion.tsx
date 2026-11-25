@@ -9,7 +9,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { aLeDroit, api, ErreurApi, peutGerer } from '../api/client'
+import { aLeDroit, api, ErreurApi, peut } from '../api/client'
 import { useReference } from '../api/reference'
 import { aujourdhuiIso, nomComplet, type Personne } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
@@ -23,7 +23,7 @@ export function FormulaireAdhesion() {
   const naviguer = useNavigate()
   const ref = useReference()
   const [personne, setPersonne] = useState<Personne | null>(null)
-  const accueilSeul = !aLeDroit('membres', 'admin', 'gestion')
+  const accueilSeul = !peut('inscription')
   const [association, setAssociation] = useState('')
   const [categorie, setCategorie] = useState(accueilSeul ? 'public' : '')
   const [debut, setDebut] = useState(aujourdhuiIso)
@@ -38,12 +38,12 @@ export function FormulaireAdhesion() {
   // Associations où l'utilisateur peut faire adhérer : celles qu'il gère, et Productions (le public) pour l'accueil.
   const accueil = aLeDroit('membres', 'accueil')
   const associations = ref?.organisations.filter((o) => o.genre === 'association_jaxaj'
-    && (peutGerer(o.id) || (accueil && o.volet === 'evenementiel'))) ?? []
+    && (peut('inscription', o.id) || (accueil && o.volet === 'evenementiel'))) ?? []
   const autres = ref?.organisations.filter((o) => o.genre !== 'association_jaxaj') ?? []
   // L'accueil inscrit le public chez Productions : présélectionnée.
   const choisie = association || (associations.length === 1 ? associations[0].id : accueilSeul ? associations.find((a) => a.volet === 'evenementiel')?.id ?? '' : '')
   const volet = associations.find((a) => a.id === choisie)?.volet
-  const publicSeul = accueilSeul || !peutGerer(choisie)  // via l'accueil : le public seulement
+  const publicSeul = accueilSeul || !peut('inscription', choisie)  // via l'accueil : le public seulement
   const categories = (ref?.categories ?? []).filter((c) => (!volet || c.volet === volet) && (!publicSeul || c.code === 'public'))
   const choisirAssociation = (id: string) => {
     setAssociation(id)

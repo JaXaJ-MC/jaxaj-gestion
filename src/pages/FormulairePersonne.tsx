@@ -12,7 +12,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link as LienRouteur, useNavigate, useParams, useSearchParams } from 'react-router'
-import { api, ErreurApi, gestionLimitee } from '../api/client'
+import { api, ErreurApi, equipeLimitee, peut } from '../api/client'
 import { useReference } from '../api/reference'
 import { aujourdhuiIso, libelleDisparu, TYPES_FICHE, type Personne, type TypeFiche } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
@@ -39,7 +39,7 @@ export function FormulairePersonne() {
   const detail = !id || detailVisible
   // Gestion limitée à une association : la fiche n'est visible qu'avec une adhésion à celle-ci,
   // créée dans la foulée.
-  const limitee = id ? null : gestionLimitee()
+  const limitee = id || !equipeLimitee() ? null : equipeLimitee()!.filter((a) => peut('inscription', a))
   const ref = useReference()
   const [association, setAssociation] = useState('')
   const [categorie, setCategorie] = useState('')

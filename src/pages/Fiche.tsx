@@ -11,7 +11,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as LienRouteur, useParams } from 'react-router'
-import { aLeDroit, api, peutGerer } from '../api/client'
+import { aLeDroit, api, peut } from '../api/client'
 import { useReference } from '../api/reference'
 import { aujourdhuiIso, dateFr, enCoursLe, idDe, libelleDisparu, nomComplet, telephoneFr, TYPES_FICHE, type Acces, type Adhesion, type CotisationEtat, type Personne, type Role } from '../api/types'
 import { ActionsAdhesion } from '../composants/ActionsAdhesion'
@@ -67,15 +67,15 @@ export function Fiche() {
   const adhesionDe = (iri: string) => adhesions.find((a) => a.id === idDe(iri))
   // Coordonnées : selon les droits (l'API omet les champs vides, leur absence ne dit rien).
   const detail = !!personne.detail  // coordonnées visibles : l'API ne les envoie qu'à qui y a droit
-  const gestion = aLeDroit('membres', 'admin', 'gestion')
+  const gestion = peut('historique')
   const a = personne.adresse
   const fp = fullPatch(adhesions, aujourdhui)
   // Disparu : adhésions et rôles encore ouverts à la date de disparition (aujourd'hui si inconnue).
   const finDisparu = personne.disparuLe?.slice(0, 10) ?? aujourdhui
   const ouvert = (x: { debut: string, fin: string | null }) => x.debut.slice(0, 10) <= finDisparu && (!x.fin || x.fin.slice(0, 10) > finDisparu)
   const aClore = personne.statut === 'disparu' ? [
-    ...adhesions.filter((x) => ouvert(x) && peutGerer(idDe(x.association))).map((x) => `/api/adhesions/${x.id}`),
-    ...roles.filter((x) => ouvert(x) && peutGerer(idDe(x.organisation))).map((x) => `/api/roles/${x.id}`),
+    ...adhesions.filter((x) => ouvert(x) && peut('historique', idDe(x.association))).map((x) => `/api/adhesions/${x.id}`),
+    ...roles.filter((x) => ouvert(x) && peut('historique', idDe(x.organisation))).map((x) => `/api/roles/${x.id}`),
   ] : []
   async function cloreTout() {
     setCloture(null)
@@ -155,9 +155,9 @@ export function Fiche() {
                 {ad.auTitreDe && ` · au titre de ${organisation(ad.auTitreDe)?.nom}`}
               </Typography>
               {ad.exemption && <Chip size="small" variant="outlined" label="exempté" title={ad.exemption} />}
-              {enCours && peutGerer(idDe(ad.association)) && <ActionsAdhesion adhesion={ad} apres={charger}
+              {enCours && peut('historique', idDe(ad.association)) && <ActionsAdhesion adhesion={ad} apres={charger}
                 categories={(ref?.categories ?? []).filter((c) => c.volet === (organisation(ad.association)?.volet ?? c.volet))} />}
-              {peutGerer(idDe(ad.association)) && <CorrigerPeriode chemin={`/api/adhesions/${ad.id}`} debut={ad.debut} fin={ad.fin} seul={!enCours} apres={charger} exemption={ad.exemption ?? null}
+              {peut('historique', idDe(ad.association)) && <CorrigerPeriode chemin={`/api/adhesions/${ad.id}`} debut={ad.debut} fin={ad.fin} seul={!enCours} apres={charger} exemption={ad.exemption ?? null}
                 libelle={`${categorie(ad.categorie)?.libelle ?? idDe(ad.categorie)} · ${organisation(ad.association)?.nom ?? ''}`} />}
             </LigneHistorique>
           )
@@ -166,7 +166,7 @@ export function Fiche() {
 
       <BlocRoles key={version} personne={personne.id} organisations={ref?.organisations ?? []} />
 
-      <Section titre="Cotisations" action={aLeDroit('membres', 'admin', 'gestion') && <CalculCotisations personne={personne.id} apres={charger} />}>
+      <Section titre="Cotisations" action={peut('historique') && <CalculCotisations personne={personne.id} apres={charger} />}>
         <BlocCotisations cotisations={cotisations} associationDe={(a) => organisation(adhesionDe(a)?.association ?? null)} />
       </Section>
 

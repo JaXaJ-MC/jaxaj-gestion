@@ -27,7 +27,7 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { aLeDroit, api, ErreurApi } from '../api/client'
+import { aLeDroit, api, ErreurApi, peut } from '../api/client'
 import { useReference } from '../api/reference'
 import { dateFr, euros, libelleDisparu, ROLES, TYPES_FICHE, type LigneListe } from '../api/types'
 import { AnneauCompletude } from '../composants/Completude'
@@ -63,7 +63,7 @@ export function Recherche() {
   const [menu, setMenu] = useState<{ ancre: HTMLElement, ligne: LigneListe } | null>(null)
   const [enCours, setEnCours] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', texte: string } | null>(null)
-  const peutEncaisser = aLeDroit('membres', 'admin', 'gestion', 'accueil')
+  const peutEncaisser = peut('tresorerie') || aLeDroit('membres', 'accueil')
 
   // Mois affiché : le mois en cours, ou un autre (faire le point d'un mois passé avec le trésorier).
   const [moisCourant] = useState(() => new Date().toISOString().slice(0, 7))
