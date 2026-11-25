@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link as LienRouteur, useParams } from 'react-router'
 import { aLeDroit, api } from '../api/client'
 import { useReference } from '../api/reference'
-import { aujourdhuiIso, dateFr, enCoursLe, idDe, nomComplet, telephoneFr, type Acces, type Adhesion, type CotisationEtat, type Personne } from '../api/types'
+import { aujourdhuiIso, dateFr, enCoursLe, idDe, nomComplet, telephoneFr, TYPES_FICHE, type Acces, type Adhesion, type CotisationEtat, type Personne } from '../api/types'
 import { ActionsAdhesion } from '../composants/ActionsAdhesion'
 import { AnneauCompletude, manquantsFr, pourcentage, type Completude } from '../composants/Completude'
 import { CorrigerPeriode } from '../composants/CorrigerPeriode'
@@ -70,6 +70,7 @@ export function Fiche() {
     <Stack spacing={2}>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
         <Typography variant="h1">{nomComplet(personne)}</Typography>
+        {personne.type !== 'personne' && <Chip size="small" variant="outlined" label={TYPES_FICHE[personne.type]} />}
         <Chip size="small" color={acces?.acces ? 'success' : 'default'} variant={acces?.acces ? 'filled' : 'outlined'}
           label={acces?.acces ? 'Accès autorisé aujourd\'hui' : 'Pas d\'accès aujourd\'hui'} />
         {completude && <AnneauCompletude completude={completude} taille={34} />}

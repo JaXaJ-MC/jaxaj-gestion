@@ -1,6 +1,8 @@
 import Add from '@mui/icons-material/Add'
 import Cake from '@mui/icons-material/Cake'
 import Check from '@mui/icons-material/Check'
+import Groups from '@mui/icons-material/Groups'
+import MusicNote from '@mui/icons-material/MusicNote'
 import Search from '@mui/icons-material/Search'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
@@ -18,12 +20,13 @@ import MenuItem from '@mui/material/MenuItem'
 import Snackbar from '@mui/material/Snackbar'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { useReference } from '../api/reference'
-import { dateFr, euros, ROLES, type LigneListe } from '../api/types'
+import { dateFr, euros, ROLES, TYPES_FICHE, type LigneListe } from '../api/types'
 import { AnneauCompletude } from '../composants/Completude'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 import { Surligne } from '../composants/Surligne'
@@ -70,6 +73,7 @@ export function Recherche() {
 
   // Pastilles proposées : états, associations JaXaJ, niveaux, rôles.
   const options = useMemo<Jeton[]>(() => [
+    ...Object.entries(TYPES_FICHE).map(([valeur, libelle]) => ({ type: 'fiche' as const, valeur, libelle })),
     ...Object.entries(ETATS).map(([valeur, libelle]) => ({ type: 'etat' as const, valeur, libelle })),
     ...(ref?.organisations ?? []).filter((o) => o.genre === 'association_jaxaj').map((o) => ({ type: 'association' as const, valeur: o.id, libelle: o.nom })),
     ...(ref?.categories ?? []).map((c) => ({ type: 'niveau' as const, valeur: c.code, libelle: c.libelle })),
@@ -182,6 +186,9 @@ export function Recherche() {
                         <Surligne texte={[l.prenom, l.nom].filter(Boolean).join(' ')} mots={mots} />
                         {l.surnom && <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}> « <Surligne texte={l.surnom} mots={mots} /> »</Box>}
                       </Typography>
+                      {l.type !== 'personne' && (
+                        <Tooltip title={TYPES_FICHE[l.type]}>{l.type === 'artiste' ? <MusicNote fontSize="small" color="action" /> : <Groups fontSize="small" color="action" />}</Tooltip>
+                      )}
                       {l.completude.manquants.length > 0 && <AnneauCompletude completude={l.completude} taille={24} />}
                     </Stack>
                     {anniversaireFullPatch(l) !== null && (

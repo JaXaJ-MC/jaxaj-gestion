@@ -6,7 +6,7 @@
 
 import type { LigneListe } from './api/types'
 
-export type TypeJeton = 'etat' | 'association' | 'niveau' | 'role'
+export type TypeJeton = 'fiche' | 'etat' | 'association' | 'niveau' | 'role'
 
 export interface Jeton {
   type: TypeJeton
@@ -15,6 +15,7 @@ export interface Jeton {
 }
 
 export const TYPES: Record<TypeJeton, string> = {
+  fiche: 'Type de fiche',
   etat: 'État',
   association: 'Association',
   niveau: 'Niveau',
@@ -51,6 +52,9 @@ export function depuisAdresse(texte: string | null, options: Jeton[]): Jeton[] {
 export function filtrer(l: LigneListe, jetons: Jeton[]): { ok: boolean, adhesion?: LigneListe['adhesions'][number] } {
   const de = (t: TypeJeton) => jetons.filter((j) => j.type === t).map((j) => j.valeur)
   const [etats, associations, niveaux, roles] = [de('etat'), de('association'), de('niveau'), de('role')]
+  const fiches = de('fiche')
+
+  if (fiches.length && !fiches.includes(l.type)) return { ok: false }
 
   if (etats.includes('en_cours') && !l.adhesion) return { ok: false }
   if (etats.includes('a_payer') && !aPayer(l)) return { ok: false }

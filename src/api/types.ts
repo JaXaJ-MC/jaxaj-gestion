@@ -6,11 +6,16 @@ export interface Adresse {
   pays: string
 }
 
+/** Nature de la fiche ; « membre du club » n'en est pas une, il se déduit des adhésions. */
+export type TypeFiche = 'personne' | 'artiste' | 'structure'
+export const TYPES_FICHE: Record<TypeFiche, string> = { personne: 'Personne', artiste: 'Artiste ou groupe', structure: 'Club ou association' }
+
 export interface Personne {
   id: string
   nom: string
   prenom: string | null
   surnom: string | null
+  type: TypeFiche
   // Présents seulement avec le droit de voir le détail (gestion, admin)
   dateNaissance?: string | null
   commentaire?: string | null
@@ -137,6 +142,7 @@ export interface LigneListe {
   nom: string
   prenom: string | null
   surnom: string | null
+  type: TypeFiche
   adhesion: string | null
   association: string | null
   categorie: string | null

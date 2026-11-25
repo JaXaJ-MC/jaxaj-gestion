@@ -11,15 +11,15 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { api, ErreurApi, gestionLimitee } from '../api/client'
 import { useReference } from '../api/reference'
-import { aujourdhuiIso, type Personne } from '../api/types'
+import { aujourdhuiIso, TYPES_FICHE, type Personne, type TypeFiche } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
 
 interface Champs {
-  nom: string, prenom: string, surnom: string, dateNaissance: string, telephone: string, email: string,
+  type: TypeFiche, nom: string, prenom: string, surnom: string, dateNaissance: string, telephone: string, email: string,
   ligne1: string, code_postal: string, ville: string, pays: string, commentaire: string
 }
 
-const vide: Champs = { nom: '', prenom: '', surnom: '', dateNaissance: '', telephone: '', email: '',
+const vide: Champs = { type: 'personne', nom: '', prenom: '', surnom: '', dateNaissance: '', telephone: '', email: '',
   ligne1: '', code_postal: '', ville: '', pays: 'FR', commentaire: '' }
 
 const grille = { display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }
@@ -48,7 +48,7 @@ export function FormulairePersonne() {
     api<Personne>('membres', `/api/personnes/${id}`).then((p) => {
       setDetailVisible(!!p.detail)
       setChamps({
-        nom: p.nom, prenom: p.prenom ?? '', surnom: p.surnom ?? '', dateNaissance: p.dateNaissance?.slice(0, 10) ?? '',
+        type: p.type ?? 'personne', nom: p.nom, prenom: p.prenom ?? '', surnom: p.surnom ?? '', dateNaissance: p.dateNaissance?.slice(0, 10) ?? '',
         telephone: p.telephone ?? '', email: p.email ?? '', commentaire: p.commentaire ?? '',
         ligne1: p.adresse?.ligne1 ?? '', code_postal: p.adresse?.code_postal ?? '', ville: p.adresse?.ville ?? '', pays: p.adresse?.pays ?? 'FR',
       })
@@ -72,10 +72,12 @@ export function FormulairePersonne() {
     setEnvoi(true)
     setErreur(null)
     const n = (v: string) => v.trim() || null
-    const corps: Record<string, unknown> = { nom: champs.nom.trim(), prenom: n(champs.prenom), surnom: n(champs.surnom) }
+    // Artiste, club ou association : ni prénom, ni surnom, ni date de naissance.
+    const personne = champs.type === 'personne'
+    const corps: Record<string, unknown> = { type: champs.type, nom: champs.nom.trim(), prenom: personne ? n(champs.prenom) : null, surnom: personne ? n(champs.surnom) : null }
     if (detail) {
       Object.assign(corps, {
-        dateNaissance: n(champs.dateNaissance), telephone: n(champs.telephone), email: n(champs.email), commentaire: n(champs.commentaire),
+        dateNaissance: personne ? n(champs.dateNaissance) : null, telephone: n(champs.telephone), email: n(champs.email), commentaire: n(champs.commentaire),
         adresse: champs.ligne1 || champs.ville || champs.code_postal
           ? { ligne1: n(champs.ligne1), code_postal: n(champs.code_postal), ville: n(champs.ville), pays: champs.pays.toUpperCase() || 'FR' }
           : null,
@@ -103,16 +105,21 @@ export function FormulairePersonne() {
       <Card component="form" onSubmit={soumettre}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Stack spacing={2.5}>
+            <TextField select label="Type de fiche" value={champs.type} sx={{ maxWidth: { sm: 280 } }}
+              onChange={(e) => setChamps((c) => ({ ...c, type: e.target.value as TypeFiche }))}>
+              {Object.entries(TYPES_FICHE).map(([code, libelle]) => <MenuItem key={code} value={code}>{libelle}</MenuItem>)}
+            </TextField>
             <Box sx={grille}>
-              <TextField label="Nom" required autoFocus {...champ('nom')} />
-              <TextField label="Prénom" {...champ('prenom')} />
-              <TextField label="Surnom (nom de route)" {...champ('surnom')} />
+              <TextField label={{ personne: 'Nom', artiste: 'Nom de l\'artiste ou du groupe', structure: 'Nom du club ou de l\'association' }[champs.type]}
+                required autoFocus {...champ('nom')} sx={champs.type === 'personne' ? undefined : { gridColumn: { sm: 'span 3' } }} />
+              {champs.type === 'personne' && <TextField label="Prénom" {...champ('prenom')} />}
+              {champs.type === 'personne' && <TextField label="Surnom (nom de route)" {...champ('surnom')} />}
             </Box>
             {detail && (
               <>
                 <Box sx={grille}>
-                  <ChampDate libelle="Date de naissance" valeur={champs.dateNaissance} max={aujourdhuiIso()}
-                    changer={(v) => setChamps((c) => ({ ...c, dateNaissance: v }))} erreur={erreur?.details.dateNaissance} />
+                  {champs.type === 'personne' && <ChampDate libelle="Date de naissance" valeur={champs.dateNaissance} max={aujourdhuiIso()}
+                    changer={(v) => setChamps((c) => ({ ...c, dateNaissance: v }))} erreur={erreur?.details.dateNaissance} />}
                   <TextField label="Téléphone" type="tel" {...champ('telephone')} />
                   <TextField label="E-mail" type="email" {...champ('email')} />
                 </Box>
