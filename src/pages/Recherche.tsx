@@ -193,7 +193,7 @@ export function Recherche() {
                     </Stack>
                     {l.statut === 'disparu' && (
                       <Chip size="small" variant="outlined" sx={{ my: 0.4 }}
-                        label={`${libelleDisparu(l.type)}${l.disparu_le ? ` · ${dateFr(l.disparu_le)}` : ''}`} />
+                        label={`${libelleDisparu(l.type)}${l.disparu_le ? ` le ${dateFr(l.disparu_le)}` : ''}`} />
                     )}
                     {anniversaireFullPatch(l) !== null && (
                       <Chip size="small" color="warning" variant="outlined" icon={<Cake />} sx={{ my: 0.4 }}

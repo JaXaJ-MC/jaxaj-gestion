@@ -4,7 +4,9 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Stack from '@mui/material/Stack'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import MenuItem from '@mui/material/MenuItem'
+import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -132,14 +134,12 @@ export function FormulairePersonne() {
                 <TextField label="Commentaire" multiline minRows={2} {...champ('commentaire')} />
                 {id && (
                   <Box sx={grille}>
-                    <TextField select label="Statut" value={champs.statut}
-                      onChange={(e) => setChamps((c) => ({ ...c, statut: e.target.value as Champs['statut'] }))}
-                      helperText="Hors de la liste courante, la fiche et son historique restent.">
-                      <MenuItem value="actif">{champs.type === 'personne' ? 'En vie' : 'En activité'}</MenuItem>
-                      <MenuItem value="disparu">{libelleDisparu(champs.type)}</MenuItem>
-                    </TextField>
+                    <FormControlLabel sx={{ gridColumn: { sm: 'span 2' } }}
+                      control={<Switch checked={champs.statut === 'disparu'}
+                        onChange={(e) => setChamps((c) => ({ ...c, statut: e.target.checked ? 'disparu' : 'actif' }))} />}
+                      label={<>{libelleDisparu(champs.type)}<Typography variant="body2" color="text.secondary">Hors de la liste courante ; la fiche et son historique restent.</Typography></>} />
                     {champs.statut === 'disparu' && (
-                      <ChampDate libelle={champs.type === 'personne' ? 'Date du décès (si connue)' : 'Depuis le (si connu)'} valeur={champs.disparuLe} max={aujourdhuiIso()}
+                      <ChampDate libelle="Le (si connu)" valeur={champs.disparuLe} max={aujourdhuiIso()}
                         changer={(v) => setChamps((c) => ({ ...c, disparuLe: v }))} erreur={erreur?.details.disparuLe} />
                     )}
                   </Box>

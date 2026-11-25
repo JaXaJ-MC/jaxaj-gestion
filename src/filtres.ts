@@ -28,7 +28,7 @@ export const ETATS: Record<string, string> = {
   a_jour: 'À jour ce mois-ci',
   anniversaire_fp: 'Anniversaire full patch ce mois-ci',
   incomplete: 'Fiche incomplète',
-  archives: 'Décédés et disparus',
+  archives: 'Partis ou dissous',
 }
 
 const aPayer = (l: LigneListe) => l.mois.statut === 'a_payer' || l.mois.statut === 'partiel'

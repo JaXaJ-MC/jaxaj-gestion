@@ -10,8 +10,8 @@ export interface Adresse {
 export type TypeFiche = 'personne' | 'artiste' | 'structure'
 export const TYPES_FICHE: Record<TypeFiche, string> = { personne: 'Personne', artiste: 'Artiste ou groupe', structure: 'Club ou association' }
 
-/** « Décédé(e) » pour une personne, « N'existe plus » pour un artiste ou une structure. */
-export const libelleDisparu = (type: TypeFiche) => (type === 'personne' ? 'Décédé(e)' : 'N\'existe plus')
+/** « Nous a quittés » pour une personne, « N'existe plus » pour un artiste ou une structure. */
+export const libelleDisparu = (type: TypeFiche) => (type === 'personne' ? 'Nous a quittés' : 'N\'existe plus')
 
 export interface Personne {
   id: string
