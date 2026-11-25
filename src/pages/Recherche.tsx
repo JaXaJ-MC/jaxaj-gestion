@@ -86,10 +86,11 @@ export function Recherche() {
     [resultats, mots])
   const ajouter = (j: Jeton) => setBrut(versAdresse([...jetons, j]))
   // Raccourcis : les états qu'on n'a pas encore posés, avec ce qu'ils donneraient.
-  const raccourcis = (['en_cours', 'a_payer', 'archives'] as const)
-    .filter((e) => !jetons.some((j) => j.type === 'etat' && j.valeur === e))
-    .map((e) => {
-      const j = options.find((o) => o.type === 'etat' && o.valeur === e)!
+  // Raccourcis : pastilles fréquentes pas encore posées, avec ce qu'elles donneraient.
+  const raccourcis = ([['etat', 'en_cours'], ['etat', 'a_payer'], ['fiche', 'structure'], ['fiche', 'artiste'], ['etat', 'archives']] as const)
+    .filter(([type, valeur]) => !jetons.some((j) => j.type === type && (j.valeur === valeur || type === 'fiche')))
+    .map(([type, valeur]) => {
+      const j = options.find((o) => o.type === type && o.valeur === valeur)!
       return { j, n: (lignes ?? []).filter((l) => filtrer(l, [...jetons, j]).ok).length }
     })
 
@@ -154,7 +155,8 @@ export function Recherche() {
         {lignes && raccourcis.length > 0 && (
           <Stack direction="row" spacing={1} sx={{ mt: 1.2, flexWrap: 'wrap', rowGap: 1, alignItems: 'center' }}>
             {raccourcis.map(({ j, n }) => (
-              <Chip key={j.valeur} size="small" variant="outlined" icon={<Add />} label={`${j.libelle} · ${n}`} onClick={() => ajouter(j)} />
+              <Chip key={j.valeur} size="small" variant="outlined" label={`${j.libelle} · ${n}`} onClick={() => ajouter(j)}
+                icon={j.valeur === 'artiste' ? <MusicNote /> : j.valeur === 'structure' ? <Groups /> : <Add />} />
             ))}
           </Stack>
         )}
