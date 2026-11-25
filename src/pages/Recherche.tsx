@@ -87,8 +87,8 @@ export function Recherche() {
   const visibles = useMemo(() => {
     const trouves = resultats.filter(({ l }) => correspond([l.nom, l.prenom, l.surnom].filter(Boolean).join(' '), mots))
     const parId = new Map(trouves.map((r) => [r.l.id, r]))
-    return trier(trouves.map((r) => r.l), tri, mots).map((l) => parId.get(l.id)!)
-  }, [resultats, mots, tri])
+    return trier(trouves.map((r) => r.l), tri, mots, ref?.categories.map((c) => c.code)).map((l) => parId.get(l.id)!)
+  }, [resultats, mots, tri, ref])
   const ajouter = (j: Jeton) => setBrut(versAdresse([...jetons, j]))
   // Raccourcis : les états qu'on n'a pas encore posés, avec ce qu'ils donneraient.
   // Raccourcis : pastilles fréquentes pas encore posées, avec ce qu'elles donneraient.
@@ -186,7 +186,7 @@ export function Recherche() {
             <TextField select size="small" variant="standard" value={tri} onChange={(e) => setTri(e.target.value as Tri)}
               slotProps={{ htmlInput: { 'aria-label': 'Trier la liste' } }} sx={{ minWidth: 0, '& .MuiInputBase-root': { fontSize: '.875rem' } }}>
               {Object.entries(TRIS).map(([code, libelle]) => (
-                <MenuItem key={code} value={code}>{code === 'auto' && mots.length ? 'Pertinence, puis adhésions en cours' : libelle}</MenuItem>
+                <MenuItem key={code} value={code}>{code === 'auto' && mots.length ? 'Pertinence, puis bureau et niveau' : libelle}</MenuItem>
               ))}
             </TextField>
           </Stack>
