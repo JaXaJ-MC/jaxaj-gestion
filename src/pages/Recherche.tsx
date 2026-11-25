@@ -26,7 +26,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
 import { useReference } from '../api/reference'
-import { dateFr, euros, ROLES, TYPES_FICHE, type LigneListe } from '../api/types'
+import { dateFr, euros, libelleDisparu, ROLES, TYPES_FICHE, type LigneListe } from '../api/types'
 import { AnneauCompletude } from '../composants/Completude'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 import { Surligne } from '../composants/Surligne'
@@ -86,11 +86,11 @@ export function Recherche() {
     [resultats, mots])
   const ajouter = (j: Jeton) => setBrut(versAdresse([...jetons, j]))
   // Raccourcis : les états qu'on n'a pas encore posés, avec ce qu'ils donneraient.
-  const raccourcis = (['en_cours', 'a_payer'] as const)
+  const raccourcis = (['en_cours', 'a_payer', 'archives'] as const)
     .filter((e) => !jetons.some((j) => j.type === 'etat' && j.valeur === e))
     .map((e) => {
       const j = options.find((o) => o.type === 'etat' && o.valeur === e)!
-      return { j, n: resultats.filter(({ l }) => filtrer(l, [j]).ok).length }
+      return { j, n: (lignes ?? []).filter((l) => filtrer(l, [...jetons, j]).ok).length }
     })
 
   async function encaisser(ligne: LigneListe, moyen: string) {
@@ -191,6 +191,10 @@ export function Recherche() {
                       )}
                       {l.completude.manquants.length > 0 && <AnneauCompletude completude={l.completude} taille={24} />}
                     </Stack>
+                    {l.statut === 'disparu' && (
+                      <Chip size="small" variant="outlined" sx={{ my: 0.4 }}
+                        label={`${libelleDisparu(l.type)}${l.disparu_le ? ` · ${dateFr(l.disparu_le)}` : ''}`} />
+                    )}
                     {anniversaireFullPatch(l) !== null && (
                       <Chip size="small" color="warning" variant="outlined" icon={<Cake />} sx={{ my: 0.4 }}
                         label={`${anniversaireFullPatch(l)} an${anniversaireFullPatch(l)! > 1 ? 's' : ''} de full patch le ${l.premier_full_patch!.slice(8, 10)}/${l.premier_full_patch!.slice(5, 7)}`} />

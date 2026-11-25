@@ -11,15 +11,15 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { api, ErreurApi, gestionLimitee } from '../api/client'
 import { useReference } from '../api/reference'
-import { aujourdhuiIso, TYPES_FICHE, type Personne, type TypeFiche } from '../api/types'
+import { aujourdhuiIso, libelleDisparu, TYPES_FICHE, type Personne, type TypeFiche } from '../api/types'
 import { ChampDate } from '../composants/ChampDate'
 
 interface Champs {
-  type: TypeFiche, nom: string, prenom: string, surnom: string, dateNaissance: string, telephone: string, email: string,
+  type: TypeFiche, statut: 'actif' | 'disparu', disparuLe: string, nom: string, prenom: string, surnom: string, dateNaissance: string, telephone: string, email: string,
   ligne1: string, code_postal: string, ville: string, pays: string, commentaire: string
 }
 
-const vide: Champs = { type: 'personne', nom: '', prenom: '', surnom: '', dateNaissance: '', telephone: '', email: '',
+const vide: Champs = { type: 'personne', statut: 'actif', disparuLe: '', nom: '', prenom: '', surnom: '', dateNaissance: '', telephone: '', email: '',
   ligne1: '', code_postal: '', ville: '', pays: 'FR', commentaire: '' }
 
 const grille = { display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }
@@ -48,7 +48,7 @@ export function FormulairePersonne() {
     api<Personne>('membres', `/api/personnes/${id}`).then((p) => {
       setDetailVisible(!!p.detail)
       setChamps({
-        type: p.type ?? 'personne', nom: p.nom, prenom: p.prenom ?? '', surnom: p.surnom ?? '', dateNaissance: p.dateNaissance?.slice(0, 10) ?? '',
+        type: p.type ?? 'personne', statut: p.statut ?? 'actif', disparuLe: p.disparuLe?.slice(0, 10) ?? '', nom: p.nom, prenom: p.prenom ?? '', surnom: p.surnom ?? '', dateNaissance: p.dateNaissance?.slice(0, 10) ?? '',
         telephone: p.telephone ?? '', email: p.email ?? '', commentaire: p.commentaire ?? '',
         ligne1: p.adresse?.ligne1 ?? '', code_postal: p.adresse?.code_postal ?? '', ville: p.adresse?.ville ?? '', pays: p.adresse?.pays ?? 'FR',
       })
@@ -74,7 +74,7 @@ export function FormulairePersonne() {
     const n = (v: string) => v.trim() || null
     // Artiste, club ou association : ni prénom, ni surnom, ni date de naissance.
     const personne = champs.type === 'personne'
-    const corps: Record<string, unknown> = { type: champs.type, nom: champs.nom.trim(), prenom: personne ? n(champs.prenom) : null, surnom: personne ? n(champs.surnom) : null }
+    const corps: Record<string, unknown> = { type: champs.type, statut: champs.statut, disparuLe: champs.statut === 'disparu' ? n(champs.disparuLe) : null, nom: champs.nom.trim(), prenom: personne ? n(champs.prenom) : null, surnom: personne ? n(champs.surnom) : null }
     if (detail) {
       Object.assign(corps, {
         dateNaissance: personne ? n(champs.dateNaissance) : null, telephone: n(champs.telephone), email: n(champs.email), commentaire: n(champs.commentaire),
@@ -130,6 +130,20 @@ export function FormulairePersonne() {
                   <TextField label="Pays (code ISO)" slotProps={{ htmlInput: { maxLength: 2 } }} {...champ('pays')} />
                 </Box>
                 <TextField label="Commentaire" multiline minRows={2} {...champ('commentaire')} />
+                {id && (
+                  <Box sx={grille}>
+                    <TextField select label="Statut" value={champs.statut}
+                      onChange={(e) => setChamps((c) => ({ ...c, statut: e.target.value as Champs['statut'] }))}
+                      helperText="Hors de la liste courante, la fiche et son historique restent.">
+                      <MenuItem value="actif">{champs.type === 'personne' ? 'En vie' : 'En activité'}</MenuItem>
+                      <MenuItem value="disparu">{libelleDisparu(champs.type)}</MenuItem>
+                    </TextField>
+                    {champs.statut === 'disparu' && (
+                      <ChampDate libelle={champs.type === 'personne' ? 'Date du décès (si connue)' : 'Depuis le (si connu)'} valeur={champs.disparuLe} max={aujourdhuiIso()}
+                        changer={(v) => setChamps((c) => ({ ...c, disparuLe: v }))} erreur={erreur?.details.disparuLe} />
+                    )}
+                  </Box>
+                )}
               </>
             )}
             {limitee && (

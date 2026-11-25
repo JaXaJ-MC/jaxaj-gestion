@@ -28,13 +28,14 @@ export const ETATS: Record<string, string> = {
   a_jour: 'À jour ce mois-ci',
   anniversaire_fp: 'Anniversaire full patch ce mois-ci',
   incomplete: 'Fiche incomplète',
+  archives: 'Décédés et disparus',
 }
 
 const aPayer = (l: LigneListe) => l.mois.statut === 'a_payer' || l.mois.statut === 'partiel'
 
 /** Full patch en ce moment, et premier passage full patch fêté ce mois-ci : nombre d'années, sinon null. */
 export function anniversaireFullPatch(l: LigneListe, aujourdhui = new Date()): number | null {
-  if (!l.premier_full_patch || !l.adhesions.some((a) => a.categorie === 'full_patch')) return null
+  if (l.statut === 'disparu' || !l.premier_full_patch || !l.adhesions.some((a) => a.categorie === 'full_patch')) return null
   const [a, m] = l.premier_full_patch.split('-').map(Number)
   const annees = aujourdhui.getFullYear() - a
   return m === aujourdhui.getMonth() + 1 && annees > 0 ? annees : null
@@ -55,6 +56,8 @@ export function filtrer(l: LigneListe, jetons: Jeton[]): { ok: boolean, adhesion
   const fiches = de('fiche')
 
   if (fiches.length && !fiches.includes(l.type)) return { ok: false }
+  // Décédés, artistes et structures qui n'existent plus : à part, seulement avec leur pastille.
+  if ((l.statut === 'disparu') !== etats.includes('archives')) return { ok: false }
 
   if (etats.includes('en_cours') && !l.adhesion) return { ok: false }
   if (etats.includes('a_payer') && !aPayer(l)) return { ok: false }

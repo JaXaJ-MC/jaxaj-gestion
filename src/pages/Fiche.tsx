@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link as LienRouteur, useParams } from 'react-router'
 import { aLeDroit, api } from '../api/client'
 import { useReference } from '../api/reference'
-import { aujourdhuiIso, dateFr, enCoursLe, idDe, nomComplet, telephoneFr, TYPES_FICHE, type Acces, type Adhesion, type CotisationEtat, type Personne } from '../api/types'
+import { aujourdhuiIso, dateFr, enCoursLe, idDe, libelleDisparu, nomComplet, telephoneFr, TYPES_FICHE, type Acces, type Adhesion, type CotisationEtat, type Personne, type Role } from '../api/types'
 import { ActionsAdhesion } from '../composants/ActionsAdhesion'
 import { AnneauCompletude, manquantsFr, pourcentage, type Completude } from '../composants/Completude'
 import { CorrigerPeriode } from '../composants/CorrigerPeriode'
@@ -34,6 +34,9 @@ export function Fiche() {
   const [cotisations, setCotisations] = useState<CotisationEtat[]>([])
   const [acces, setAcces] = useState<Acces | null>(null)
   const [completude, setCompletude] = useState<Completude | null>(null)
+  const [roles, setRoles] = useState<Role[]>([])
+  const [version, setVersion] = useState(0)  // recharge le bloc des rôles
+  const [cloture, setCloture] = useState<string | null>(null)  // erreur de « Clore »
   const [erreur, setErreur] = useState<string | null>(null)
   const [aujourdhui] = useState(aujourdhuiIso)
 
@@ -44,8 +47,10 @@ export function Fiche() {
       api<CotisationEtat[]>('membres', `/api/personnes/${id}/cotisations`),
       api<Acces>('membres', `/api/personnes/${id}/acces`),
       api<Completude>('membres', `/api/personnes/${id}/completude`),
-    ]).then(([p, a, c, x, k]) => {
+      api<Role[]>('membres', `/api/roles?personne=${id}&itemsPerPage=100`),
+    ]).then(([p, a, c, x, k, r]) => {
       setCompletude(k)
+      setRoles(r)
       setPersonne(p)
       setAdhesions([...a].sort((u, v) => v.debut.localeCompare(u.debut)))
       setCotisations(c)  // déjà triées, la plus récente d'abord
@@ -65,12 +70,30 @@ export function Fiche() {
   const gestion = aLeDroit('membres', 'admin', 'gestion')
   const a = personne.adresse
   const fp = fullPatch(adhesions, aujourdhui)
+  // Disparu : adhésions et rôles encore ouverts à la date de disparition (aujourd'hui si inconnue).
+  const finDisparu = personne.disparuLe?.slice(0, 10) ?? aujourdhui
+  const ouvert = (x: { debut: string, fin: string | null }) => x.debut.slice(0, 10) <= finDisparu && (!x.fin || x.fin.slice(0, 10) > finDisparu)
+  const aClore = personne.statut === 'disparu' ? [
+    ...adhesions.filter(ouvert).map((x) => `/api/adhesions/${x.id}`),
+    ...roles.filter(ouvert).map((x) => `/api/roles/${x.id}`),
+  ] : []
+  async function cloreTout() {
+    setCloture(null)
+    try {
+      for (const chemin of aClore) await api('membres', chemin, { methode: 'PATCH', corps: { fin: finDisparu } })
+      setVersion((v) => v + 1)
+      charger()
+    } catch (e) {
+      setCloture((e as Error).message)
+    }
+  }
 
   return (
     <Stack spacing={2}>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
         <Typography variant="h1">{nomComplet(personne)}</Typography>
         {personne.type !== 'personne' && <Chip size="small" variant="outlined" label={TYPES_FICHE[personne.type]} />}
+        {personne.statut === 'disparu' && <Chip size="small" label={`${libelleDisparu(personne.type)}${personne.disparuLe ? ` le ${dateFr(personne.disparuLe)}` : ''}`} />}
         <Chip size="small" color={acces?.acces ? 'success' : 'default'} variant={acces?.acces ? 'filled' : 'outlined'}
           label={acces?.acces ? 'Accès autorisé aujourd\'hui' : 'Pas d\'accès aujourd\'hui'} />
         {completude && <AnneauCompletude completude={completude} taille={34} />}
@@ -85,6 +108,13 @@ export function Fiche() {
         {detail && <Button variant="outlined" startIcon={<Edit />} component={LienRouteur} to={`/personnes/${id}/modifier`}>Modifier</Button>}
         <Button variant="contained" startIcon={<Add />} component={LienRouteur} to={`/personnes/${id}/adhesion`}>Nouvelle adhésion</Button>
       </Stack>
+
+      {gestion && aClore.length > 0 && (
+        <Alert severity="info" action={<Button color="inherit" size="small" onClick={cloreTout}>Clore</Button>}>
+          {aClore.length} adhésion{aClore.length > 1 ? 's' : ''} ou rôle{aClore.length > 1 ? 's' : ''} encore ouvert{aClore.length > 1 ? 's' : ''} : les clore au {dateFr(finDisparu)} ?
+          {cloture && <Box sx={{ mt: 0.5 }}>{cloture}</Box>}
+        </Alert>
+      )}
 
       {fp && (
         <Section titre="Full patch">
@@ -134,7 +164,7 @@ export function Fiche() {
         })}
       </Section>
 
-      <BlocRoles personne={personne.id} organisations={ref?.organisations ?? []} />
+      <BlocRoles key={version} personne={personne.id} organisations={ref?.organisations ?? []} />
 
       <Section titre="Cotisations" action={aLeDroit('membres', 'admin') && <CalculCotisations personne={personne.id} apres={charger} />}>
         <BlocCotisations cotisations={cotisations} associationDe={(a) => organisation(adhesionDe(a)?.association ?? null)} />
