@@ -1,4 +1,5 @@
 import Add from '@mui/icons-material/Add'
+import Cake from '@mui/icons-material/Cake'
 import Check from '@mui/icons-material/Check'
 import Search from '@mui/icons-material/Search'
 import Alert from '@mui/material/Alert'
@@ -25,7 +26,7 @@ import { useReference } from '../api/reference'
 import { dateFr, euros, ROLES, type LigneListe } from '../api/types'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 import { Surligne } from '../composants/Surligne'
-import { depuisAdresse, ETATS, filtrer, TYPES, versAdresse, type Jeton } from '../filtres'
+import { anniversaireFullPatch, depuisAdresse, ETATS, filtrer, TYPES, versAdresse, type Jeton } from '../filtres'
 import { correspond, termes } from '../texte'
 
 const MOYENS = [
@@ -179,6 +180,10 @@ export function Recherche() {
                       <Surligne texte={[l.prenom, l.nom].filter(Boolean).join(' ')} mots={mots} />
                       {l.surnom && <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}> « <Surligne texte={l.surnom} mots={mots} /> »</Box>}
                     </Typography>
+                    {anniversaireFullPatch(l) !== null && (
+                      <Chip size="small" color="warning" variant="outlined" icon={<Cake />} sx={{ my: 0.4 }}
+                        label={`${anniversaireFullPatch(l)} an${anniversaireFullPatch(l)! > 1 ? 's' : ''} de full patch le ${l.premier_full_patch!.slice(8, 10)}/${l.premier_full_patch!.slice(5, 7)}`} />
+                    )}
                     {l.roles.length > 0 && (
                       <Stack direction="row" spacing={0.5} sx={{ my: 0.4, flexWrap: 'wrap', rowGap: 0.5 }}>
                         {l.roles.map((r) => (

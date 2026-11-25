@@ -25,9 +25,18 @@ export const ETATS: Record<string, string> = {
   en_cours: 'Adhésion en cours',
   a_payer: 'À payer ce mois-ci',
   a_jour: 'À jour ce mois-ci',
+  anniversaire_fp: 'Anniversaire full patch ce mois-ci',
 }
 
 const aPayer = (l: LigneListe) => l.mois.statut === 'a_payer' || l.mois.statut === 'partiel'
+
+/** Full patch en ce moment, et premier passage full patch fêté ce mois-ci : nombre d'années, sinon null. */
+export function anniversaireFullPatch(l: LigneListe, aujourdhui = new Date()): number | null {
+  if (!l.premier_full_patch || !l.adhesions.some((a) => a.categorie === 'full_patch')) return null
+  const [a, m] = l.premier_full_patch.split('-').map(Number)
+  const annees = aujourdhui.getFullYear() - a
+  return m === aujourdhui.getMonth() + 1 && annees > 0 ? annees : null
+}
 
 /** « association:uuid,niveau:full_patch » ↔ jetons (libellés retrouvés dans les options). */
 export const versAdresse = (jetons: Jeton[]) => jetons.map((j) => `${j.type}:${j.valeur}`).join(',')
@@ -45,6 +54,7 @@ export function filtrer(l: LigneListe, jetons: Jeton[]): { ok: boolean, adhesion
   if (etats.includes('en_cours') && !l.adhesion) return { ok: false }
   if (etats.includes('a_payer') && !aPayer(l)) return { ok: false }
   if (etats.includes('a_jour') && l.mois.statut !== 'paye' && l.mois.statut !== 'gratuit') return { ok: false }
+  if (etats.includes('anniversaire_fp') && anniversaireFullPatch(l) === null) return { ok: false }
 
   if (roles.length && !l.roles.some((r) => roles.includes(r.role) && (!associations.length || associations.includes(r.organisation)))) {
     return { ok: false }

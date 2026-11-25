@@ -1,4 +1,5 @@
 import Add from '@mui/icons-material/Add'
+import Cake from '@mui/icons-material/Cake'
 import Edit from '@mui/icons-material/Edit'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -22,6 +23,7 @@ import { BlocRoles } from '../composants/BlocRoles'
 import { Definitions } from '../composants/Definitions'
 import { EtiquetteAssociation } from '../composants/Etiquette'
 import { LigneHistorique, Section } from '../composants/Section'
+import { dureeFr, fullPatch } from '../fullPatch'
 
 export function Fiche() {
   const { id } = useParams()
@@ -58,6 +60,7 @@ export function Fiche() {
   const detail = !!personne.detail  // coordonnées visibles : l'API ne les envoie qu'à qui y a droit
   const gestion = aLeDroit('membres', 'admin', 'gestion')
   const a = personne.adresse
+  const fp = fullPatch(adhesions, aujourdhui)
 
   return (
     <Stack spacing={2}>
@@ -71,6 +74,20 @@ export function Fiche() {
         {detail && <Button variant="outlined" startIcon={<Edit />} component={LienRouteur} to={`/personnes/${id}/modifier`}>Modifier</Button>}
         <Button variant="contained" startIcon={<Add />} component={LienRouteur} to={`/personnes/${id}/adhesion`}>Nouvelle adhésion</Button>
       </Stack>
+
+      {fp && (
+        <Section titre="Full patch">
+          {fp.enCours && fp.anniversaire.dansJours === 0 && (
+            <Alert severity="success" icon={<Cake />} sx={{ mb: 1.5 }}>Aujourd'hui : {fp.anniversaire.annees} an{fp.anniversaire.annees > 1 ? 's' : ''} depuis le premier passage full patch !</Alert>
+          )}
+          <Definitions lignes={[
+            ['Temps de full patch', `${dureeFr(fp.duree)}${fp.periodes > 1 ? ` (en ${fp.periodes} périodes)` : ''}${fp.enCours ? '' : ', terminé'}`],
+            ['Premier passage', dateFr(fp.premier)],
+            ...(fp.enCours && fp.anniversaire.dansJours > 0 ? [['Prochain anniversaire',
+              `${dateFr(fp.anniversaire.date)} : ${fp.anniversaire.annees} an${fp.anniversaire.annees > 1 ? 's' : ''}, dans ${fp.anniversaire.dansJours} jour${fp.anniversaire.dansJours > 1 ? 's' : ''}`] as [string, string]] : []),
+          ]} />
+        </Section>
+      )}
 
       {detail && (
         <Section titre="Coordonnées">
