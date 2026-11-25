@@ -32,6 +32,7 @@ import { EtiquetteAssociation } from '../composants/Etiquette'
 import { Surligne } from '../composants/Surligne'
 import { anniversaireFullPatch, depuisAdresse, ETATS, filtrer, TYPES, versAdresse, type Jeton } from '../filtres'
 import { correspond, termes } from '../texte'
+import { trier, TRIS, type Tri } from '../tri'
 
 const MOYENS = [
   { code: 'especes', libelle: 'Espèces' },
@@ -51,6 +52,7 @@ export function Recherche() {
   const ref = useReference()
   const [params, setParams] = useSearchParams()
   const [saisie, setSaisie] = useState(params.get('q') ?? '')
+  const [tri, setTri] = useState<Tri>((params.get('tri') as Tri) in TRIS ? params.get('tri') as Tri : 'auto')
   const [brut, setBrut] = useState(params.get('f') ?? '')  // pastilles, dans l'adresse : « niveau:full_patch,… »
   const [lignes, setLignes] = useState<LigneListe[] | null>(null)
   const [mois, setMois] = useState('')
@@ -68,8 +70,8 @@ export function Recherche() {
 
   useEffect(() => {
     const q = saisie.trim()
-    setParams({ ...(q ? { q } : {}), ...(brut ? { f: brut } : {}) }, { replace: true })
-  }, [saisie, brut, setParams])
+    setParams({ ...(q ? { q } : {}), ...(brut ? { f: brut } : {}), ...(tri !== 'auto' ? { tri } : {}) }, { replace: true })
+  }, [saisie, brut, tri, setParams])
 
   // Pastilles proposées : états, associations JaXaJ, niveaux, rôles.
   const options = useMemo<Jeton[]>(() => [
@@ -82,8 +84,11 @@ export function Recherche() {
   const jetons = useMemo(() => depuisAdresse(brut, options), [brut, options])
   const mots = useMemo(() => termes(saisie), [saisie])
   const resultats = useMemo(() => (lignes ?? []).map((l) => ({ l, ...filtrer(l, jetons) })).filter((r) => r.ok), [lignes, jetons])
-  const visibles = useMemo(() => resultats.filter(({ l }) => correspond([l.nom, l.prenom, l.surnom].filter(Boolean).join(' '), mots)),
-    [resultats, mots])
+  const visibles = useMemo(() => {
+    const trouves = resultats.filter(({ l }) => correspond([l.nom, l.prenom, l.surnom].filter(Boolean).join(' '), mots))
+    const parId = new Map(trouves.map((r) => [r.l.id, r]))
+    return trier(trouves.map((r) => r.l), tri, mots).map((l) => parId.get(l.id)!)
+  }, [resultats, mots, tri])
   const ajouter = (j: Jeton) => setBrut(versAdresse([...jetons, j]))
   // Raccourcis : les états qu'on n'a pas encore posés, avec ce qu'ils donneraient.
   // Raccourcis : pastilles fréquentes pas encore posées, avec ce qu'elles donneraient.
@@ -174,9 +179,17 @@ export function Recherche() {
 
       {visibles.length > 0 && (
         <>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {visibles.length === lignes?.length ? `${visibles.length} personnes` : `${visibles.length} sur ${lignes?.length}`} · {nomMois}
-          </Typography>
+          <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {visibles.length === lignes?.length ? `${visibles.length} personnes` : `${visibles.length} sur ${lignes?.length}`} · {nomMois}
+            </Typography>
+            <TextField select size="small" variant="standard" value={tri} onChange={(e) => setTri(e.target.value as Tri)}
+              slotProps={{ htmlInput: { 'aria-label': 'Trier la liste' } }} sx={{ minWidth: 0, '& .MuiInputBase-root': { fontSize: '.875rem' } }}>
+              {Object.entries(TRIS).map(([code, libelle]) => (
+                <MenuItem key={code} value={code}>{code === 'auto' && mots.length ? 'Pertinence, puis adhésions en cours' : libelle}</MenuItem>
+              ))}
+            </TextField>
+          </Stack>
           <Card>
             <List disablePadding>
               {visibles.map(({ l, adhesion: retenue }, i) => (
