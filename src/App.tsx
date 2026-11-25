@@ -11,6 +11,7 @@ import { Recherche } from './pages/Recherche'
 // Fiche et formulaires (avec le calendrier, lourd) chargés à la demande : la liste reste légère.
 const Fiche = lazy(() => import('./pages/Fiche').then((m) => ({ default: m.Fiche })))
 const FormulairePersonne = lazy(() => import('./pages/FormulairePersonne').then((m) => ({ default: m.FormulairePersonne })))
+const Doublons = lazy(() => import('./pages/Doublons').then((m) => ({ default: m.Doublons })))
 const Tarifs = lazy(() => import('./pages/Tarifs').then((m) => ({ default: m.Tarifs })))
 const FormulaireAdhesion = lazy(() => import('./pages/FormulaireAdhesion').then((m) => ({ default: m.FormulaireAdhesion })))
 
@@ -42,6 +43,7 @@ export default function App() {
               <Route path="personnes/:id/modifier" element={<FormulairePersonne />} />
               <Route path="personnes/:id/adhesion" element={<FormulaireAdhesion />} />
               <Route path="tarifs" element={<Tarifs />} />
+              <Route path="doublons" element={<Doublons />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

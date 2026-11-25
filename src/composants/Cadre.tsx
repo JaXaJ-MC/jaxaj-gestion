@@ -36,6 +36,7 @@ export function Cadre() {
             <PersonAdd />
           </IconButton>}
           {admin && <Button component={NavLink} to="/tarifs" sx={{ ...lien, display: { xs: 'none', sm: 'inline-flex' } }}>Tarifs</Button>}
+          {admin && <Button component={NavLink} to="/doublons" sx={{ ...lien, display: { xs: 'none', md: 'inline-flex' } }}>Doublons</Button>}
           <Box sx={{ flex: 1 }} />
           <IconButton color="inherit" aria-label="Mon compte" onClick={(e) => setMenu(e.currentTarget)}>
             <AccountCircle />
@@ -44,6 +45,7 @@ export function Cadre() {
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
             <MenuItem disabled><ListItemText primary={utilisateur?.username} secondary="connecté" /></MenuItem>
             {admin && <MenuItem onClick={() => { setMenu(null); naviguer('/tarifs') }}>Tarifs</MenuItem>}
+            {admin && <MenuItem onClick={() => { setMenu(null); naviguer('/doublons') }}>Doublons</MenuItem>}
             <MenuItem onClick={async () => { setMenu(null); await deconnexion(); naviguer('/connexion') }}>Déconnexion</MenuItem>
           </Menu>
         </Toolbar>
