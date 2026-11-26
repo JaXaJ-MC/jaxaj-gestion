@@ -15,7 +15,7 @@ import Typography from '@mui/material/Typography'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as LienRouteur } from 'react-router'
 import { aLeDroit, api, ErreurApi } from '../api/client'
-import { dateFr, libelleDisparu, telephoneFr, TYPES_FICHE, type TypeFiche } from '../api/types'
+import { dateFr, libelleDisparu, telephoneFr, TYPES_FICHE, type Compte, type TypeFiche } from '../api/types'
 
 interface Fiche {
   id: string, nom: string, prenom: string | null, surnom: string | null, type: TypeFiche, statut: 'actif' | 'disparu'
@@ -37,9 +37,13 @@ export function Doublons() {
   const [erreur, setErreur] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
+  const [comptes, setComptes] = useState<Map<string, Compte>>(new Map())  // fiche → compte de connexion
 
   const charger = useCallback(() => {
     api<Groupe[]>('membres', '/api/doublons').then(setGroupes).catch((e) => setErreur(e.message))
+    if (aLeDroit('comptes', 'admin')) {
+      api<Compte[]>('comptes', '/api/comptes').then((c) => setComptes(new Map(c.map((x) => [x.personne, x])))).catch(() => {})
+    }
   }, [])
   useEffect(charger, [charger])
 
@@ -50,7 +54,15 @@ export function Doublons() {
     setEnvoi(true)
     setErreur(null)
     try {
-      for (const f of garder.groupe.fiches.filter((x) => x.id !== garder.fiche.id)) {
+      const autres = garder.groupe.fiches.filter((x) => x.id !== garder.fiche.id)
+      const avecCompte = [garder.fiche, ...autres].filter((f) => comptes.has(f.id))
+      if (avecCompte.length > 1) {
+        throw new Error('Plusieurs de ces fiches ont un compte de connexion : désactivez ceux en trop, ou demandez de l\'aide pour les réunir.')
+      }
+      for (const f of autres) {
+        // Un compte sur une fiche absorbée suit la fiche gardée (la personne garde son accès).
+        const compte = comptes.get(f.id)
+        if (compte) await api('comptes', `/api/comptes/${compte.id}`, { methode: 'PATCH', corps: { personne: garder.fiche.id } })
         await api('membres', `/api/personnes/${garder.fiche.id}/fusion`, { methode: 'POST', corps: { absorber: f.id } })
       }
       setMessage(`Fiches fusionnées dans « ${nom(garder.fiche)} ».`)
@@ -101,6 +113,7 @@ export function Doublons() {
                   <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
                     {f.type !== 'personne' && <Chip size="small" variant="outlined" label={TYPES_FICHE[f.type]} />}
                     {f.statut === 'disparu' && <Chip size="small" label={libelleDisparu(f.type)} />}
+                    {comptes.has(f.id) && <Chip size="small" color="secondary" variant="outlined" label={`compte : ${comptes.get(f.id)!.email}`} />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
                     {[f.naissance && `né(e) le ${dateFr(f.naissance)}`, f.telephone && telephoneFr(f.telephone), f.email, f.ville].filter(Boolean).join(' · ') || 'aucune coordonnée'}
@@ -126,7 +139,7 @@ export function Doublons() {
               Garder « {garder && nom(garder.fiche)} » et y fusionner {garder && garder.groupe.fiches.length - 1 > 1 ? `les ${garder.groupe.fiches.length - 1} autres fiches` : 'l\'autre fiche'} ?
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Adhésions, cotisations, rôles, paiements et coordonnées sont rattachés à la fiche gardée ; ses champs vides sont complétés. Les autres fiches sont supprimées : c'est définitif.
+              Adhésions, cotisations, rôles, paiements, coordonnées et compte de connexion sont rattachés à la fiche gardée ; ses champs vides sont complétés. Les autres fiches sont supprimées : c'est définitif.
             </Typography>
             {erreur && <Alert severity="error">{erreur}</Alert>}
           </Stack>
